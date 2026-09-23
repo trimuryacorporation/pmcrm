@@ -1,5 +1,5 @@
-const isVercelDeployment = typeof window !== 'undefined' && window.location.hostname.endsWith('.vercel.app');
-const API_URL = isVercelDeployment ? '/api' : (import.meta.env.VITE_API_URL || 'http://localhost:5000/api');
+const isLocalDevelopment = typeof window === 'undefined' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const API_URL = isLocalDevelopment ? (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') : '/api';
 export const SERVER_URL = API_URL.replace(/\/api\/?$/, '');
 
 export async function api(path, options = {}) {
@@ -62,5 +62,7 @@ export const endpoints = {
   saveCommunicationSettings: (body) => api('/settings/communications', { method: 'PUT', body: JSON.stringify(body) }),
   testEmail: (to) => api('/settings/communications/test-email', { method: 'POST', body: JSON.stringify({ to }) }),
   testWhatsApp: (to) => api('/settings/communications/test-whatsapp', { method: 'POST', body: JSON.stringify({ to }) }),
+  validateInvite: (token) => api(`/auth/invite/${encodeURIComponent(token)}`),
+  setPassword: (token, password) => api('/auth/set-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
   report: (query) => api(`/reports?${new URLSearchParams(query)}`)
 };

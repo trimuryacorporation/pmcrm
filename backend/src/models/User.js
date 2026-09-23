@@ -12,6 +12,9 @@ const userSchema = new mongoose.Schema(
     linkedEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     linkedVendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
     linkedFreelancer: { type: mongoose.Schema.Types.ObjectId, ref: 'Freelancer' },
+    passwordSetupToken: { type: String, select: false },
+    passwordSetupExpires: { type: Date, select: false },
+    passwordSetAt: Date,
     avatar: String,
     isActive: { type: Boolean, default: true },
     lastLoginAt: Date,
@@ -38,5 +41,7 @@ userSchema.pre('save', async function hashPassword(next) {
 userSchema.methods.matchPassword = function matchPassword(password) {
   return bcrypt.compare(password, this.password);
 };
+
+userSchema.index({ passwordSetupToken: 1 }, { sparse: true });
 
 export default mongoose.model('User', userSchema);

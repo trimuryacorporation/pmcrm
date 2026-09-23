@@ -1,4 +1,4 @@
-import { Bell, LogOut, Menu, Search, ShieldCheck, UserRound, X } from 'lucide-react';
+import { Bell, LogOut, Menu, Search, UserRound, X } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
@@ -12,13 +12,7 @@ export default function AppLayout() {
   const sidebar = (
     <aside className="flex h-full w-72 flex-col bg-slate-950 text-white">
       <div className="border-b border-white/10 p-5">
-        <div className="flex items-center gap-3">
-          <div className="grid h-11 w-11 place-items-center rounded-lg bg-gradient-to-br from-blue-500 via-indigo-500 to-purple-500 font-bold">TC</div>
-          <div>
-            <p className="text-sm text-slate-300">Trimurya Corporation</p>
-            <h1 className="font-semibold leading-tight">Enterprise CRM</h1>
-          </div>
-        </div>
+        <h1 className="font-semibold leading-tight">Enterprise CRM</h1>
       </div>
       <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {navItems.filter((item) => !item.roles || item.roles.includes(user?.role)).map((item) => (
@@ -37,15 +31,6 @@ export default function AppLayout() {
           </NavLink>
         ))}
       </nav>
-      <div className="border-t border-white/10 p-4">
-        <div className="rounded-lg bg-white/10 p-3">
-          <div className="flex items-center gap-2 text-sm font-semibold">
-            <ShieldCheck className="h-4 w-4 text-blue-300" />
-            Role access enabled
-          </div>
-          <p className="mt-1 text-xs text-slate-300">JWT protected workspace for {user?.role?.replace('_', ' ')}.</p>
-        </div>
-      </div>
     </aside>
   );
 

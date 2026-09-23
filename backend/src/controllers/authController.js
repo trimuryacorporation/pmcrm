@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
 import User from '../models/User.js';
@@ -36,6 +37,11 @@ export const registerRules = [
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
   body('role').optional().isIn(['super_admin', 'admin', 'employee', 'vendor', 'freelancer'])
+];
+
+export const setPasswordRules = [
+  body('token').notEmpty().withMessage('Invite token is required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
 ];
 
 export async function login(req, res, next) {
@@ -83,4 +89,38 @@ export async function register(req, res, next) {
 
 export async function me(req, res) {
   res.json({ user: req.user });
+}
+
+export async function validateInvite(req, res, next) {
+  try {
+    const token = crypto.createHash('sha256').update(req.params.token).digest('hex');
+    const user = await User.findOne({ passwordSetupToken: token, passwordSetupExpires: { $gt: new Date() } });
+    if (!user) {
+      res.status(400);
+      throw new Error('This invite link is invalid or has expired');
+    }
+    res.json({ valid: true, email: user.email, name: user.name });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function setPassword(req, res, next) {
+  try {
+    const token = crypto.createHash('sha256').update(req.body.token).digest('hex');
+    const user = await User.findOne({ passwordSetupToken: token, passwordSetupExpires: { $gt: new Date() } })
+      .select('+passwordSetupToken +passwordSetupExpires');
+    if (!user) {
+      res.status(400);
+      throw new Error('This invite link is invalid or has expired');
+    }
+    user.password = req.body.password;
+    user.passwordSetupToken = undefined;
+    user.passwordSetupExpires = undefined;
+    user.passwordSetAt = new Date();
+    await user.save();
+    res.json({ message: 'Password set successfully. You can now sign in.' });
+  } catch (error) {
+    next(error);
+  }
 }

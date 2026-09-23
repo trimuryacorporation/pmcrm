@@ -42,12 +42,15 @@ export function createCrudController(Model, options = {}) {
       }
     },
     async create(req, res, next) {
+      let item;
       try {
-        const item = await Model.create(req.body);
+        item = await Model.create(req.body);
         await writeAudit(req, 'CREATE', options.resourceName || Model.modelName, item, req.body);
-        if (options.afterCreate) setImmediate(() => options.afterCreate(item, req.user).catch((error) => console.error(`Post-create action failed: ${error.message}`)));
+        if (options.afterCreate && options.awaitAfterCreate) await options.afterCreate(item, req.user);
+        else if (options.afterCreate) setImmediate(() => options.afterCreate(item, req.user).catch((error) => console.error(`Post-create action failed: ${error.message}`)));
         res.status(201).json(item);
       } catch (error) {
+        if (item && options.rollbackOnAfterCreateError) await Model.findByIdAndDelete(item._id).catch(() => {});
         next(error);
       }
     },

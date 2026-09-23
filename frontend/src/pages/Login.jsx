@@ -1,4 +1,4 @@
-import { LockKeyhole, Mail, ShieldCheck } from 'lucide-react';
+import { LockKeyhole, Mail } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Navigate, useNavigate } from 'react-router-dom';
@@ -7,8 +7,8 @@ import { useAuth } from '../context/AuthContext.jsx';
 export default function Login() {
   const { user, login, loading } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState('superadmin@trimurya.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
   if (user) return <Navigate to="/dashboard" replace />;
 
@@ -30,25 +30,13 @@ export default function Login() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.45),transparent_28%),radial-gradient(circle_at_70%_35%,rgba(124,58,237,.35),transparent_28%),linear-gradient(135deg,#0f172a,#111827_55%,#1e1b4b)]" />
           <div className="relative flex h-full flex-col justify-between p-12 text-white">
             <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-lg bg-white text-lg font-black text-indigo-700">TC</div>
-              <div>
-                <p className="text-sm text-blue-100">Trimurya Corporation</p>
-                <h1 className="text-xl font-bold">Trimurya Enterprise CRM</h1>
-              </div>
+              <h1 className="text-xl font-bold">Enterprise CRM</h1>
             </div>
             <div className="max-w-2xl">
-              <p className="mb-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-sm font-semibold text-blue-100 ring-1 ring-white/20">Project delivery command center</p>
               <h2 className="text-5xl font-black leading-tight">Enterprise operations for projects, talent, vendors, tasks, and payments.</h2>
               <p className="mt-5 text-lg text-slate-200">One secure workspace for managers, employees, vendors, freelancers, and candidates.</p>
             </div>
-            <div className="grid grid-cols-3 gap-3 text-sm">
-              {['JWT Security', 'Role Access', 'Mongo Analytics'].map((item) => (
-                <div key={item} className="rounded-lg bg-white/10 p-4 ring-1 ring-white/15">
-                  <ShieldCheck className="mb-3 h-5 w-5 text-blue-200" />
-                  {item}
-                </div>
-              ))}
-            </div>
+            <div />
           </div>
         </section>
         <section className="grid place-items-center bg-slate-50 p-6">
@@ -56,7 +44,7 @@ export default function Login() {
             <div className="mb-8">
               <p className="text-sm font-semibold uppercase text-indigo-600">Secure Login</p>
               <h2 className="mt-1 text-3xl font-bold text-slate-950">Welcome back</h2>
-              <p className="mt-2 text-sm text-slate-500">Use the seeded demo credentials or your admin-created account.</p>
+              <p className="mt-2 text-sm text-slate-500">Use your account credentials to continue.</p>
             </div>
             <label className="mb-4 block">
               <span className="mb-1 block text-sm font-semibold text-slate-700">Email</span>
@@ -75,7 +63,6 @@ export default function Login() {
             <button className="btn-primary w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Login to CRM'}
             </button>
-            <div className="mt-5 rounded-lg bg-slate-50 p-3 text-xs text-slate-500">Demo: superadmin@trimurya.com / password123</div>
           </form>
         </section>
       </div>

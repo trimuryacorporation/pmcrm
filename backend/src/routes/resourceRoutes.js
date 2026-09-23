@@ -10,6 +10,7 @@ import { validate } from '../middleware/validate.js';
 import { createCrudController } from '../controllers/crudController.js';
 import { createAllocation } from '../controllers/allocationController.js';
 import { notifyProjectCreated } from '../services/projectNotificationService.js';
+import { inviteEmployee } from '../services/employeeInviteService.js';
 
 const adminRoles = ['super_admin', 'admin'];
 
@@ -58,10 +59,14 @@ export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
 export const employeeRoutes = routerFor(createCrudController(Employee, {
   populate: 'assignedProjects',
   searchFields: ['name', 'employeeId'],
+  afterCreate: inviteEmployee,
+  awaitAfterCreate: true,
+  rollbackOnAfterCreateError: true,
   userScope: (user) => (user.role === 'employee' ? { _id: user.linkedEmployee } : {})
 }), [
   body('employeeId').notEmpty(),
-  body('name').notEmpty()
+  body('name').notEmpty(),
+  body('email').isEmail().withMessage('A valid email is required to invite the employee')
 ], { readRoles: ['super_admin', 'admin', 'employee'] });
 
 const allocationController = createCrudController(Allocation, {
