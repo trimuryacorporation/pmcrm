@@ -14,10 +14,14 @@ dotenv.config();
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const allowedOrigins = (process.env.CLIENT_URL || 'http://localhost:5173')
-  .split(',')
+const configuredOrigins = (process.env.CLIENT_URL || '').split(',');
+const allowedOrigins = [
+  'http://localhost:5173',
+  'https://pmcrm-five.vercel.app',
+  ...configuredOrigins
+]
   .map((origin) => origin.trim().replace(/\/$/, ''))
-  .filter(Boolean);
+  .filter((origin, index, origins) => origin && origins.indexOf(origin) === index);
 
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({
