@@ -50,7 +50,10 @@ export async function inviteEmployee(employee) {
       host: config.host,
       port: Number(config.port),
       secure: Boolean(config.secure),
-      auth: { user: config.user, pass: config.password }
+      auth: { user: config.user, pass: config.password },
+      connectionTimeout: 15000,
+      greetingTimeout: 10000,
+      socketTimeout: 20000
     });
     const inviteUrl = `${frontendUrl()}/set-password?token=${rawToken}`;
     await transport.sendMail({

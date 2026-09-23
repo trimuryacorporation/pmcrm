@@ -13,6 +13,7 @@ export default function ModulePage({ module }) {
   const config = moduleConfig[module];
   const [rows, setRows] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [invitingId, setInvitingId] = useState('');
   const { user } = useAuth();
   const canManage = ['super_admin', 'admin'].includes(user?.role);
 
@@ -56,11 +57,14 @@ export default function ModulePage({ module }) {
   }
 
   async function invite(row) {
+    setInvitingId(row._id);
     try {
       const result = await endpoints.inviteEmployee(row._id);
       toast.success(result.message);
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setInvitingId('');
     }
   }
 
@@ -83,7 +87,7 @@ export default function ModulePage({ module }) {
       >
         Manage {config.title.toLowerCase()} with validation, responsive tables, profile pages, and role-protected API access.
       </PageHeader>
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={config.columns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && module === 'employees' ? invite : undefined} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={config.columns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && module === 'employees' ? invite : undefined} invitingId={invitingId} />}
       {editing && <ModalForm title={`${editing._id ? 'Edit' : 'Add'} ${config.singular}`} fields={config.fields} initial={editing} onClose={() => setEditing(null)} onSubmit={save} />}
     </>
   );
