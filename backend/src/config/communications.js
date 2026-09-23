@@ -1,6 +1,15 @@
 import SystemSetting from '../models/SystemSetting.js';
 import { decrypt } from '../utils/encryption.js';
 
+function emailPassword(saved) {
+  if (!saved?.email?.passwordEncrypted) return process.env.SMTP_PASS || '';
+  try {
+    return decrypt(saved.email.passwordEncrypted);
+  } catch {
+    return process.env.SMTP_PASS || '';
+  }
+}
+
 export async function getCommunicationConfig() {
   const setting = await SystemSetting.findOne({ key: 'communications' }).lean();
   const saved = setting?.communications;
@@ -11,7 +20,7 @@ export async function getCommunicationConfig() {
       port: Number(saved?.email?.port || process.env.SMTP_PORT || 587),
       secure: saved ? Boolean(saved.email?.secure) : String(process.env.SMTP_SECURE).toLowerCase() === 'true',
       user: saved?.email?.user || process.env.SMTP_USER || '',
-      password: saved?.email?.passwordEncrypted ? decrypt(saved.email.passwordEncrypted) : process.env.SMTP_PASS || '',
+      password: emailPassword(saved),
       from: saved?.email?.from || process.env.SMTP_FROM || process.env.SMTP_USER || ''
     },
     whatsapp: {
