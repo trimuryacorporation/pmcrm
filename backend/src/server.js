@@ -22,7 +22,16 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use('/uploads', express.static(path.join(__dirname, '..', process.env.UPLOAD_DIR || 'uploads')));
 
-app.get('/health', (req, res) => res.json({ ok: true, service: 'Trimurya Enterprise CRM API' }));
+const serviceStatus = (req, res) => res.json({
+  ok: true,
+  service: 'Trimurya Enterprise CRM API',
+  environment: process.env.NODE_ENV || 'development',
+  health: '/health',
+  api: '/api'
+});
+
+app.get('/', serviceStatus);
+app.get('/health', serviceStatus);
 app.use('/api', apiRoutes);
 app.use(notFound);
 app.use(errorHandler);
