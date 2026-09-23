@@ -12,23 +12,34 @@ export async function inviteEmployee(employee) {
   const email = employee.email?.trim().toLowerCase();
   if (!email) throw new Error('Employee email is required to send an invite');
 
-  if (await User.exists({ email })) throw new Error('A login account already exists for this email');
-
   const rawToken = crypto.randomBytes(32).toString('hex');
   const passwordSetupToken = crypto.createHash('sha256').update(rawToken).digest('hex');
   const temporaryPassword = crypto.randomBytes(32).toString('hex');
-  let user;
+  let user = await User.findOne({ email }).select('+passwordSetupToken +passwordSetupExpires');
+  const createdUser = !user;
+  const previousToken = user?.passwordSetupToken;
+  const previousExpiry = user?.passwordSetupExpires;
 
   try {
-    user = await User.create({
-      name: employee.name,
-      email,
-      password: temporaryPassword,
-      role: 'employee',
-      linkedEmployee: employee._id,
-      passwordSetupToken,
-      passwordSetupExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
-    });
+    if (user && (user.role !== 'employee' || String(user.linkedEmployee || '') !== String(employee._id))) {
+      throw new Error('A different login account already exists for this email');
+    }
+    if (!user) {
+      user = await User.create({
+        name: employee.name,
+        email,
+        password: temporaryPassword,
+        role: 'employee',
+        linkedEmployee: employee._id,
+        passwordSetupToken,
+        passwordSetupExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      });
+    } else {
+      user.name = employee.name;
+      user.passwordSetupToken = passwordSetupToken;
+      user.passwordSetupExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      await user.save();
+    }
 
     const config = (await getCommunicationConfig()).email;
     if (!config.enabled || !config.host || !config.user || !config.password || !config.from) {
@@ -49,7 +60,12 @@ export async function inviteEmployee(employee) {
       text: `Hello ${employee.name},\n\nYour CRM account has been created. Set your password using this link:\n${inviteUrl}\n\nThis link expires in 24 hours and can only be used once.`
     });
   } catch (error) {
-    if (user) await User.findByIdAndDelete(user._id).catch(() => {});
+    if (createdUser && user) await User.findByIdAndDelete(user._id).catch(() => {});
+    else if (user) {
+      user.passwordSetupToken = previousToken;
+      user.passwordSetupExpires = previousExpiry;
+      await user.save().catch(() => {});
+    }
     throw error;
   }
 }

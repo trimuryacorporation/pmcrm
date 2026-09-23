@@ -64,5 +64,6 @@ export const endpoints = {
   testWhatsApp: (to) => api('/settings/communications/test-whatsapp', { method: 'POST', body: JSON.stringify({ to }) }),
   validateInvite: (token) => api(`/auth/invite/${encodeURIComponent(token)}`),
   setPassword: (token, password) => api('/auth/set-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+  inviteEmployee: (id) => api(`/employees/${id}/invite`, { method: 'POST' }),
   report: (query) => api(`/reports?${new URLSearchParams(query)}`)
 };

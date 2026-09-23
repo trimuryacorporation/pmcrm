@@ -68,6 +68,19 @@ export const employeeRoutes = routerFor(createCrudController(Employee, {
   body('name').notEmpty(),
   body('email').isEmail().withMessage('A valid email is required to invite the employee')
 ], { readRoles: ['super_admin', 'admin', 'employee'] });
+employeeRoutes.post('/:id/invite', authorize(...adminRoles), async (req, res, next) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee) {
+      res.status(404);
+      throw new Error('Employee not found');
+    }
+    await inviteEmployee(employee);
+    res.json({ message: `Invite email sent to ${employee.email}` });
+  } catch (error) {
+    next(error);
+  }
+});
 
 const allocationController = createCrudController(Allocation, {
   populate: 'project employee vendor freelancer candidate',
