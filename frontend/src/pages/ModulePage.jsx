@@ -142,6 +142,16 @@ export default function ModulePage({ module }) {
     }
   }
 
+  function openWhatsApp(row) {
+    const rawPhone = row.phone || row.mobile || '';
+    const phone = String(rawPhone).replace(/\D/g, '');
+    if (!phone) return toast.error(`No phone number is available for this ${config.singular.toLowerCase()}`);
+    const name = row.name || row.fullName || row.contactPerson || row.agencyName || config.singular;
+    const loginUrl = `${window.location.origin}/login`;
+    const text = `Hello ${name},\n\nYour Trimurya Enterprise CRM access is ready. You can log in here:\n${loginUrl}\n\nIf you have not set your password yet, please use the password setup link sent to your email.`;
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
+  }
+
   return (
     <>
       <PageHeader
@@ -178,7 +188,7 @@ export default function ModulePage({ module }) {
           {exporting ? 'Preparing...' : 'Download Excel'}
         </button>
       </div>}
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? setDeleting : undefined} onInvite={canManage && ['employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} invitingId={invitingId} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? setDeleting : undefined} onInvite={canManage && ['employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} onWhatsApp={canManage && ['candidates', 'vendors', 'freelancers'].includes(module) ? openWhatsApp : undefined} invitingId={invitingId} />}
       {directoryModule && pagination.total > 0 && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">Showing {Math.min((page - 1) * pageSize + 1, pagination.total)}-{Math.min(page * pageSize, pagination.total)} of {pagination.total} records</p>
         <div className="flex items-center gap-2">

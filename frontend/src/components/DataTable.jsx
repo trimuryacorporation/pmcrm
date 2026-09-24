@@ -1,4 +1,4 @@
-import { Eye, Mail, Pencil, Trash2 } from 'lucide-react';
+import { Eye, Mail, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import StatusBadge from './StatusBadge.jsx';
 
@@ -33,7 +33,7 @@ function renderValue(row, key) {
   return value ?? '-';
 }
 
-export default function DataTable({ rows, columns, basePath, onEdit, onDelete, onInvite, invitingId, empty = 'No records found.' }) {
+export default function DataTable({ rows, columns, basePath, onEdit, onDelete, onInvite, invitingId, onWhatsApp, empty = 'No records found.' }) {
   if (!rows?.length) {
     return <div className="card grid min-h-64 place-items-center p-8 text-center text-slate-500">{empty}</div>;
   }
@@ -68,6 +68,9 @@ export default function DataTable({ rows, columns, basePath, onEdit, onDelete, o
                     </Link>
                     {onInvite && <button disabled={invitingId === row._id} onClick={() => onInvite(row)} className="rounded-lg border border-slate-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-50" title="Send invite email">
                       <Mail className={`h-4 w-4 ${invitingId === row._id ? 'animate-pulse' : ''}`} />
+                    </button>}
+                    {onWhatsApp && <button onClick={() => onWhatsApp(row)} className="rounded-lg border border-slate-200 p-2 text-emerald-600 hover:bg-emerald-50" title="Send WhatsApp login message">
+                      <MessageCircle className="h-4 w-4" />
                     </button>}
                     {onEdit && canManageRow && <button onClick={() => onEdit(row)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="Edit">
                       <Pencil className="h-4 w-4" />

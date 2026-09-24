@@ -6,8 +6,8 @@ const types = ['candidate', 'vendor', 'freelancer'];
 
 const fieldsByType = {
   candidate: ['fullName', 'email', 'mobile', 'linkedinUrl', 'location', 'language', 'experience', 'availabilityStatus', 'candidateType', 'notes'],
-  vendor: ['agencyName', 'contactPerson', 'email', 'linkedinUrl', 'phone', 'address', 'location', 'languagesAvailable', 'projectTypes', 'teamCapacity', 'dailyProductionCapacity', 'rate', 'notes'],
-  freelancer: ['name', 'email', 'linkedinUrl', 'phone', 'location', 'language', 'projectTypes', 'experience', 'availability', 'paymentDetails']
+  vendor: ['agencyName', 'contactPerson', 'email', 'linkedinUrl', 'phone', 'address', 'location', 'languagesAvailable', 'languageTeamCounts', 'projectTypes', 'teamCapacity', 'dailyProductionCapacity', 'rate', 'notes'],
+  freelancer: ['name', 'email', 'linkedinUrl', 'phone', 'location', 'language', 'languageTeamCounts', 'projectTypes', 'experience', 'availability', 'paymentDetails']
 };
 
 const modelByType = { candidate: Candidate, vendor: Vendor, freelancer: Freelancer };
