@@ -1,4 +1,4 @@
-import { Activity, Briefcase, Building2, CheckCircle2, Clock3, IndianRupee, UserCheck, Users } from 'lucide-react';
+import { Activity, Briefcase, Building2, CheckCircle2, Clock3, IndianRupee, KeyRound, Mail, UserCheck, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Link } from 'react-router-dom';
@@ -7,11 +7,14 @@ import PageHeader from '../components/PageHeader.jsx';
 import StatCard from '../components/StatCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { endpoints } from '../utils/api.js';
+import toast from 'react-hot-toast';
 
 const palette = ['#2563eb', '#4f46e5', '#7c3aed', '#14b8a6', '#f97316'];
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [passwordStatus, setPasswordStatus] = useState('');
+  const [sendingInviteId, setSendingInviteId] = useState('');
 
   useEffect(() => {
     endpoints.dashboard().then(setData);
@@ -22,6 +25,23 @@ export default function Dashboard() {
   const monthly = data.monthlyProjects?.map((item) => ({ month: item._id, projects: item.projects, completed: item.completed })) || [];
   const summary = data.statusSummary?.map((item) => ({ name: item._id, value: item.count })) || [];
   const languageSummary = data.languageSummary || [];
+  const passwordSetup = data.passwordSetup || { summary: [], records: [] };
+  const selectedPasswordRecords = passwordSetup.records.filter((item) => item.status === passwordStatus);
+
+  async function sendSetupEmail(person) {
+    if (!person.profileId) return toast.error('This account is not linked to a person profile.');
+    setSendingInviteId(person.id);
+    try {
+      const response = person.resource === 'employees'
+        ? await endpoints.inviteEmployee(person.profileId)
+        : await endpoints.invitePerson(person.resource, person.profileId);
+      toast.success(response.message);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setSendingInviteId('');
+    }
+  }
 
   return (
     <>
@@ -36,6 +56,13 @@ export default function Dashboard() {
         <StatCard label="Freelancers" value={cards.totalFreelancers} icon={Users} accent="from-sky-500 to-blue-600" />
         <StatCard label="Employees" value={cards.totalEmployees} icon={Users} accent="from-slate-700 to-slate-950" />
       </div>
+
+      {passwordSetup.summary.length > 0 && <div className="card mt-6 p-5">
+        <div className="mb-4 flex items-center gap-2"><KeyRound className="h-5 w-5 text-indigo-600" /><div><h3 className="font-bold text-slate-950">Password Setup Status</h3><p className="mt-0.5 text-sm text-slate-500">Click a status to view the people in that group.</p></div></div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {passwordSetup.summary.map((item) => <button key={item.status} type="button" onClick={() => setPasswordStatus(item.status)} className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${item.status === 'Password set' ? 'border-emerald-200 bg-emerald-50' : item.status === 'Setup pending' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}><p className="text-sm font-semibold text-slate-700">{item.status}</p><p className="mt-2 text-3xl font-black text-slate-950">{item.count}</p><p className="mt-1 text-xs font-semibold text-indigo-600">View people →</p></button>)}
+        </div>
+      </div>}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
         <div className="card p-5">
@@ -151,8 +178,14 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      {passwordStatus && <PasswordStatusModal status={passwordStatus} records={selectedPasswordRecords} sendingInviteId={sendingInviteId} onSendSetupEmail={sendSetupEmail} onClose={() => setPasswordStatus('')} />}
     </>
   );
+}
+
+function PasswordStatusModal({ status, records, sendingInviteId, onSendSetupEmail, onClose }) {
+  const canSendEmail = status !== 'Password set';
+  return <div className="fixed inset-0 z-50 grid place-items-center bg-slate-950/60 p-4 backdrop-blur-sm"><section role="dialog" aria-modal="true" aria-label={`${status} people`} className="flex max-h-[calc(100dvh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl"><div className="flex items-start justify-between border-b border-slate-200 px-5 py-4"><div><p className="text-xs font-bold uppercase tracking-[0.14em] text-indigo-600">Password setup status</p><h2 className="mt-1 text-xl font-bold text-slate-950">{status} ({records.length})</h2></div><button type="button" onClick={onClose} className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:bg-slate-50" aria-label="Close"><X className="h-4 w-4" /></button></div><div className="min-h-0 flex-1 overflow-y-auto p-4">{records.length ? <div className="space-y-2">{records.map((person) => <div key={person.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-3"><div className="min-w-0"><p className="truncate font-bold text-slate-900">{person.name}</p><p className="truncate text-sm text-slate-500">{person.email}</p></div><div className="flex shrink-0 items-center gap-2"><span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold capitalize text-slate-600">{person.role}</span>{canSendEmail && <button type="button" onClick={() => onSendSetupEmail(person)} disabled={!person.profileId || sendingInviteId === person.id} className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100 disabled:cursor-not-allowed disabled:opacity-50"><Mail className={`h-3.5 w-3.5 ${sendingInviteId === person.id ? 'animate-pulse' : ''}`} />{sendingInviteId === person.id ? 'Sending...' : 'Send email'}</button>}</div></div>)}</div> : <p className="py-12 text-center text-sm text-slate-500">No people in this status.</p>}</div><div className="border-t border-slate-200 bg-slate-50 px-5 py-3 text-right"><button type="button" className="btn-secondary" onClick={onClose}>Close</button></div></section></div>;
 }
 
 function LanguageCountLink({ module, language, count }) {

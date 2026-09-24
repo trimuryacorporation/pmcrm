@@ -2,6 +2,7 @@ import Project from '../models/Project.js';
 import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Task } from '../models/Work.js';
 import { Payment } from '../models/Finance.js';
+import User from '../models/User.js';
 
 function aggregateLanguages(Model, field) {
   return Model.aggregate([
@@ -51,7 +52,8 @@ export async function dashboard(req, res, next) {
       pendingPayments,
       paidPayments,
       tasks,
-      languageGroups
+      languageGroups,
+      passwordSetupUsers
     ] = await Promise.all([
       Project.countDocuments(projectFilter),
       Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }),
@@ -79,7 +81,15 @@ export async function dashboard(req, res, next) {
           aggregateLanguages(Vendor, 'languagesAvailable'),
           aggregateLanguages(Freelancer, 'language')
         ])
-        : Promise.resolve([[], [], []])
+        : Promise.resolve([[], [], []]),
+      isAdmin
+        ? User.find({ role: { $in: ['employee', 'vendor', 'freelancer'] } })
+          .select('name email role linkedEmployee linkedVendor linkedFreelancer passwordSetAt +passwordSetupToken +passwordSetupExpires')
+          .populate('linkedEmployee', 'name')
+          .populate('linkedVendor', 'agencyName contactPerson')
+          .populate('linkedFreelancer', 'name')
+          .lean()
+        : Promise.resolve([])
     ]);
 
     const languageSummaryMap = new Map();
@@ -97,6 +107,21 @@ export async function dashboard(req, res, next) {
     addLanguageCounts(languageGroups[2], 'freelancers');
     const languageSummary = [...languageSummaryMap.values()]
       .sort((a, b) => (b.candidates + b.vendors + b.freelancers) - (a.candidates + a.vendors + a.freelancers) || a.language.localeCompare(b.language));
+    const passwordSetupRecords = passwordSetupUsers.map((account) => {
+      const profile = account.linkedVendor || account.linkedFreelancer || account.linkedEmployee;
+      const name = profile?.agencyName || profile?.contactPerson || profile?.name || account.name;
+      const status = account.passwordSetAt
+        ? 'Password set'
+        : account.passwordSetupToken && account.passwordSetupExpires > new Date()
+          ? 'Setup pending'
+          : 'Not set';
+      const resource = account.role === 'vendor' ? 'vendors' : account.role === 'freelancer' ? 'freelancers' : 'employees';
+      return { id: account._id, profileId: profile?._id, resource, name, email: account.email, role: account.role, status };
+    });
+    const passwordSetupSummary = ['Password set', 'Setup pending', 'Not set'].map((status) => ({
+      status,
+      count: passwordSetupRecords.filter((item) => item.status === status).length
+    }));
 
     res.json({
       cards: {
@@ -115,6 +140,7 @@ export async function dashboard(req, res, next) {
       statusSummary,
       monthlyProjects,
       languageSummary,
+      passwordSetup: { summary: passwordSetupSummary, records: passwordSetupRecords },
       upcomingDeadlines,
       recentActivities: recentProjects.map((project) => ({
         title: `${project.name} updated`,
