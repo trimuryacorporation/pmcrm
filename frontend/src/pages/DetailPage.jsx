@@ -66,6 +66,15 @@ export default function DetailPage({ module }) {
       >
         Profile, project history, documents, performance, notes, and operational details.
       </PageHeader>
+      {canApply && hasApplied && (
+        <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-emerald-900 shadow-sm">
+          <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
+          <div>
+            <p className="text-sm font-bold">Application submitted</p>
+            <p className="mt-0.5 text-sm leading-5 text-emerald-800">Thank you for your interest. Our team will review your application and contact you soon.</p>
+          </div>
+        </div>
+      )}
       <div className="grid gap-6 xl:grid-cols-[1fr_0.7fr]">
         <div className="card p-5">
           <h3 className="mb-4 flex items-center gap-2 font-bold text-slate-950">
