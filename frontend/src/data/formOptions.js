@@ -3,7 +3,10 @@ import ISO6391 from 'iso-639-1';
 const indianLanguages = [
   'Assamese', 'Bengali', 'Bodo', 'Dogri', 'English', 'Gujarati', 'Hindi', 'Kannada', 'Kashmiri', 'Konkani',
   'Maithili', 'Malayalam', 'Manipuri (Meitei)', 'Marathi', 'Nepali', 'Odia', 'Punjabi', 'Sanskrit',
-  'Santali', 'Sindhi', 'Tamil', 'Telugu', 'Urdu'
+  'Santali', 'Sindhi', 'Tamil', 'Telugu', 'Urdu',
+  'Bhojpuri', 'Haryanvi', 'Rajasthani', 'Marwari', 'Garhwali', 'Kumaoni', 'Magahi', 'Chhattisgarhi',
+  'Angika', 'Bundeli', 'Tulu', 'Mizo', 'Khasi', 'Garo', 'Kokborok', 'Mundari', 'Ho', 'Kurukh',
+  'Gondi', 'Bhili', 'Kodava', 'Ladakhi', 'Lepcha', 'Pahari', 'Nicobarese'
 ];
 
 const pakistanLanguages = [

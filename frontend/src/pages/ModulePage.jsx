@@ -5,6 +5,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import DataTable from '../components/DataTable.jsx';
 import Loading from '../components/Loading.jsx';
 import ModalForm from '../components/ModalForm.jsx';
+import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { moduleConfig } from '../data/modules.js';
 import { endpoints } from '../utils/api.js';
@@ -14,6 +15,8 @@ export default function ModulePage({ module }) {
   const config = moduleConfig[module];
   const [rows, setRows] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
   const [invitingId, setInvitingId] = useState('');
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState('');
@@ -112,14 +115,18 @@ export default function ModulePage({ module }) {
     }
   }
 
-  async function remove(row) {
-    if (!confirm(`Delete ${config.singular.toLowerCase()}?`)) return;
+  async function confirmRemove() {
+    if (!deleting) return;
+    setDeleteSaving(true);
     try {
-      await endpoints.remove(config.endpoint, row._id);
-      toast.success('Record deleted');
+      await endpoints.remove(config.endpoint, deleting._id);
+      toast.success(`${config.singular} deleted successfully`);
+      setDeleting(null);
       load();
     } catch (error) {
       toast.error(error.message);
+    } finally {
+      setDeleteSaving(false);
     }
   }
 
@@ -171,7 +178,7 @@ export default function ModulePage({ module }) {
           {exporting ? 'Preparing...' : 'Download Excel'}
         </button>
       </div>}
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && ['employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} invitingId={invitingId} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? setDeleting : undefined} onInvite={canManage && ['employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} invitingId={invitingId} />}
       {directoryModule && pagination.total > 0 && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">Showing {Math.min((page - 1) * pageSize + 1, pagination.total)}-{Math.min(page * pageSize, pagination.total)} of {pagination.total} records</p>
         <div className="flex items-center gap-2">
@@ -181,6 +188,7 @@ export default function ModulePage({ module }) {
         </div>
       </div>}
       {editing && <ModalForm title={`${editing._id ? 'Edit' : 'Add'} ${config.singular}`} fields={visibleFields} initial={editing} requiredFields={config.requiredFields} onClose={() => setEditing(null)} onSubmit={save} />}
+      {deleting && <ConfirmDialog title={`Delete ${config.singular}?`} message={`Are you sure you want to delete this ${config.singular.toLowerCase()}? This action cannot be undone.`} confirming={deleteSaving} onCancel={() => setDeleting(null)} onConfirm={confirmRemove} />}
     </>
   );
 }
