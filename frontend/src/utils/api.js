@@ -50,7 +50,10 @@ export const endpoints = {
   administrators: () => api('/administrators'),
   createAdministrator: (body) => api('/administrators', { method: 'POST', body: JSON.stringify(body) }),
   updateAdministratorStatus: (id, isActive) => api(`/administrators/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
-  list: (resource) => api(`/${resource}`),
+  list: (resource, query = {}) => {
+    const parameters = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+    return api(`/${resource}${parameters.size ? `?${parameters}` : ''}`);
+  },
   get: (resource, id) => api(`/${resource}/${id}`),
   create: (resource, body) => api(`/${resource}`, { method: 'POST', body: JSON.stringify(body) }),
   update: (resource, id, body) => api(`/${resource}/${id}`, { method: 'PUT', body: JSON.stringify(body) }),

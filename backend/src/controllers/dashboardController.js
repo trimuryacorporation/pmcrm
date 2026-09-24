@@ -3,6 +3,25 @@ import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Task } from '../models/Work.js';
 import { Payment } from '../models/Finance.js';
 
+function aggregateLanguages(Model, field) {
+  return Model.aggregate([
+    {
+      $project: {
+        languages: {
+          $cond: [
+            { $isArray: `$${field}` },
+            `$${field}`,
+            [`$${field}`]
+          ]
+        }
+      }
+    },
+    { $unwind: '$languages' },
+    { $match: { languages: { $type: 'string', $ne: '' } } },
+    { $group: { _id: '$languages', count: { $sum: 1 } } }
+  ]);
+}
+
 export async function dashboard(req, res, next) {
   try {
     const isAdmin = ['super_admin', 'admin'].includes(req.user.role);
@@ -31,7 +50,8 @@ export async function dashboard(req, res, next) {
       recentProjects,
       pendingPayments,
       paidPayments,
-      tasks
+      tasks,
+      languageGroups
     ] = await Promise.all([
       Project.countDocuments(projectFilter),
       Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }),
@@ -52,8 +72,31 @@ export async function dashboard(req, res, next) {
       Project.find(projectFilter).sort({ updatedAt: -1 }).limit(8).select('name code status priority progress updatedAt'),
       isAdmin ? Payment.aggregate([{ $match: { status: { $ne: 'Paid' } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]) : [],
       isAdmin ? Payment.aggregate([{ $match: { status: 'Paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]) : [],
-      Task.find(taskFilter).populate('project', 'name code').sort({ dueDate: 1 }).limit(20)
+      Task.find(taskFilter).populate('project', 'name code').sort({ dueDate: 1 }).limit(20),
+      isAdmin
+        ? Promise.all([
+          aggregateLanguages(Candidate, 'language'),
+          aggregateLanguages(Vendor, 'languagesAvailable'),
+          aggregateLanguages(Freelancer, 'language')
+        ])
+        : Promise.resolve([[], [], []])
     ]);
+
+    const languageSummaryMap = new Map();
+    const addLanguageCounts = (items, key) => {
+      items.forEach(({ _id, count }) => {
+        const language = String(_id).trim();
+        if (!language) return;
+        const row = languageSummaryMap.get(language) || { language, candidates: 0, vendors: 0, freelancers: 0 };
+        row[key] = count;
+        languageSummaryMap.set(language, row);
+      });
+    };
+    addLanguageCounts(languageGroups[0], 'candidates');
+    addLanguageCounts(languageGroups[1], 'vendors');
+    addLanguageCounts(languageGroups[2], 'freelancers');
+    const languageSummary = [...languageSummaryMap.values()]
+      .sort((a, b) => (b.candidates + b.vendors + b.freelancers) - (a.candidates + a.vendors + a.freelancers) || a.language.localeCompare(b.language));
 
     res.json({
       cards: {
@@ -71,6 +114,7 @@ export async function dashboard(req, res, next) {
       completionPercentage: totalProjects ? Math.round((completedProjects / totalProjects) * 100) : 0,
       statusSummary,
       monthlyProjects,
+      languageSummary,
       upcomingDeadlines,
       recentActivities: recentProjects.map((project) => ({
         title: `${project.name} updated`,

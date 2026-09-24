@@ -55,6 +55,7 @@ export const moduleConfig = {
       ['fullName', 'Full Name'],
       ['mobile', 'Mobile Number'],
       ['email', 'Email', 'email'],
+      ['linkedinUrl', 'LinkedIn ID / Profile URL'],
       ['location', 'Location'],
       ['language', 'Language', 'combobox', LANGUAGE_OPTIONS],
       ['experience', 'Experience', 'select', EXPERIENCE_OPTIONS],
@@ -73,6 +74,7 @@ export const moduleConfig = {
       ['agencyName', 'Vendor / Agency Name'],
       ['contactPerson', 'Contact Person'],
       ['email', 'Email', 'email'],
+      ['linkedinUrl', 'LinkedIn ID / Profile URL'],
       ['phone', 'Phone Number'],
       ['address', 'Address'],
       ['location', 'Location'],
@@ -95,6 +97,7 @@ export const moduleConfig = {
     fields: [
       ['name', 'Name'],
       ['email', 'Email', 'email'],
+      ['linkedinUrl', 'LinkedIn ID / Profile URL'],
       ['phone', 'Phone'],
       ['location', 'Location'],
       ['language', 'Languages', 'multicombobox', LANGUAGE_OPTIONS],

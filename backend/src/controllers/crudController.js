@@ -23,22 +23,25 @@ export function createCrudController(Model, options = {}) {
   return {
     async list(req, res, next) {
       try {
-        const { q, status, page = 1, limit = 50 } = req.query;
+        const { q, status, language, page = 1, limit = 50 } = req.query;
+        const safePage = Math.max(Number(page) || 1, 1);
+        const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
         const filter = {};
         const allowedSearchFields = options.searchFieldsForUser ? options.searchFieldsForUser(req.user) : searchFields;
         if (status) filter.status = status;
+        if (language && options.languageField) filter[options.languageField] = language;
         if (q && allowedSearchFields.length) {
           const search = { $regex: escapeRegex(q.trim()), $options: 'i' };
           filter.$or = allowedSearchFields.map((field) => ({ [field]: search }));
         }
 
         const scoped = scopeQuery(req, filter);
-        const skip = (Number(page) - 1) * Number(limit);
+        const skip = (safePage - 1) * safeLimit;
         const [items, total] = await Promise.all([
-          Model.find(scoped).populate(populate).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
+          Model.find(scoped).populate(populate).sort({ createdAt: -1 }).skip(skip).limit(safeLimit),
           Model.countDocuments(scoped)
         ]);
-        res.json({ items: items.map((item) => present(item, req)), total, page: Number(page), pages: Math.ceil(total / Number(limit)) || 1 });
+        res.json({ items: items.map((item) => present(item, req)), total, page: safePage, pages: Math.ceil(total / safeLimit) || 1 });
       } catch (error) {
         next(error);
       }

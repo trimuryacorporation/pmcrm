@@ -106,6 +106,7 @@ export const projectRoutes = routerFor(
 export const candidateRoutes = routerFor(createCrudController(Candidate, {
   populate: 'assignedProject vendor ownerEmployee',
   searchFields: ['fullName', 'email'],
+  languageField: 'language',
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
   transformRead: maskOtherEmployeeContacts(['email', 'mobile']),
@@ -126,6 +127,7 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
   populate: 'assignedProjects ownerEmployee',
   searchFields: ['agencyName'],
+  languageField: 'languagesAvailable',
   prepareCreate: employeeOwnedData,
   prepareUpdate: employeeOwnedData,
   transformRead: maskOtherEmployeeContacts(['email', 'phone']),
@@ -145,6 +147,7 @@ export const vendorRoutes = routerFor(createCrudController(Vendor, {
 export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
   populate: 'assignedProjects vendor ownerEmployee',
   searchFields: ['name'],
+  languageField: 'language',
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
   transformRead: maskOtherEmployeeContacts(['email', 'phone']),

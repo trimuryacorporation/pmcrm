@@ -11,6 +11,7 @@ const candidateSchema = new mongoose.Schema(
     fullName: { type: String, required: true, trim: true },
     mobile: String,
     email: { type: String, lowercase: true, trim: true },
+    linkedinUrl: { type: String, trim: true },
     location: String,
     city: String,
     state: String,
@@ -35,6 +36,7 @@ const vendorSchema = new mongoose.Schema(
     agencyName: { type: String, required: true, trim: true },
     contactPerson: String,
     email: { type: String, lowercase: true, trim: true },
+    linkedinUrl: { type: String, trim: true },
     phone: String,
     address: String,
     location: String,
@@ -59,6 +61,7 @@ const freelancerSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, lowercase: true, trim: true },
+    linkedinUrl: { type: String, trim: true },
     phone: String,
     location: String,
     language: [String],
