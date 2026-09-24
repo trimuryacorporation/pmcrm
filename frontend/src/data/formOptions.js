@@ -6,6 +6,21 @@ const indianLanguages = [
   'Santali', 'Sindhi', 'Tamil', 'Telugu', 'Urdu'
 ];
 
+const pakistanLanguages = [
+  'Urdu', 'English', 'Punjabi', 'Pashto', 'Sindhi', 'Saraiki', 'Balochi', 'Hindko', 'Brahui',
+  'Mewati', 'Kohistani', 'Kashmiri', 'Shina', 'Balti', 'Kalasha', 'Aer', 'Badeshi', 'Bagri',
+  'Balochi (Makrani)', 'Balochi (Rakhshani)', 'Balochi (Sulaimani)', 'Bateri', 'Bhaya',
+  'Burushaski', 'Chilisso', 'Dameli', 'Dari', 'Dehwari', 'Dhatki', 'Domaaki', 'Gawar-Bati',
+  'Gawri', 'Ghera', 'Goaria', 'Gowro', 'Gujarati', 'Gujari', 'Gurgula', 'Haryanvi (Rangri)',
+  'Hazaragi', 'Hindko (Northern)', 'Hindko (Southern)', 'Jadgali', 'Jandavra', 'Jogi', 'Kabutra',
+  'Kacchi', 'Kalkoti', 'Kamviri', 'Kati', 'Khetrani', 'Khowar', 'Kyrgyz', 'Indus Kohistani',
+  'Kachi Koli', 'Parkari Koli', 'Wadiyari Koli', 'Kutchi', 'Kundal Shahi', 'Lasi', 'Loarki',
+  'Mankiyali', 'Marwari', 'Memoni', 'Oadki', 'Ormuri', 'Pahari-Pothwari',
+  'Pakistan Sign Language', 'Palula', 'Pashto (Central)', 'Pashto (Northern)', 'Pashto (Southern)',
+  'Punjabi (Shahmukhi)', 'Sarikoli', 'Savi', 'Shina (Kohistani)', 'Sindhi Bhil', 'Torwali',
+  'Ushojo', 'Vaghri', 'Wakhi', 'Waneci', 'Waziri', 'Yidgha'
+];
+
 const indianLanguageNames = new Set(indianLanguages.map((name) => name.toLowerCase()));
 const internationalLanguages = ISO6391.getAllNames()
   .filter((name) => !indianLanguageNames.has(name.toLowerCase()))
@@ -13,6 +28,7 @@ const internationalLanguages = ISO6391.getAllNames()
 
 export const LANGUAGE_OPTIONS = [
   ...indianLanguages.map((name) => ({ value: name, label: `India - ${name}` })),
+  ...pakistanLanguages.map((name) => ({ value: `Pakistan - ${name}`, label: `Pakistan - ${name}` })),
   ...internationalLanguages.map((name) => ({ value: name, label: `International - ${name}` }))
 ];
 

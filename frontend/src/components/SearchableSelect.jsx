@@ -1,14 +1,23 @@
 import { Check, Search } from 'lucide-react';
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
+
+function splitLabel(label) {
+  const separator = label.indexOf(' - ');
+  return separator === -1
+    ? { group: '', name: label }
+    : { group: label.slice(0, separator), name: label.slice(separator + 3) };
+}
 
 export default function SearchableSelect({ value = '', options = [], placeholder, noResultsText = 'No matching option found', onChange, invalid = false }) {
   const listId = useId();
+  const inputRef = useRef(null);
   const normalizedOptions = useMemo(() => options.map((option) => (
     typeof option === 'object' ? option : { value: option, label: option }
   )), [options]);
   const selected = normalizedOptions.find((option) => option.value === value);
   const [query, setQuery] = useState(selected?.label || value);
   const [open, setOpen] = useState(false);
+  const [opensUpward, setOpensUpward] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -19,8 +28,12 @@ export default function SearchableSelect({ value = '', options = [], placeholder
   const matches = useMemo(() => {
     const search = query.trim().toLowerCase();
     if (!search) return [];
+    const terms = search.replace(/[-(),]/g, ' ').split(/\s+/).filter(Boolean);
     return normalizedOptions
-      .filter((option) => option.label.toLowerCase().includes(search) || option.value.toLowerCase().includes(search))
+      .filter((option) => {
+        const searchable = `${option.label} ${option.value}`.toLowerCase().replace(/[-(),]/g, ' ');
+        return terms.every((term) => searchable.includes(term));
+      })
       .sort((a, b) => {
         const aStarts = a.label.toLowerCase().startsWith(search);
         const bStarts = b.label.toLowerCase().startsWith(search);
@@ -35,11 +48,26 @@ export default function SearchableSelect({ value = '', options = [], placeholder
     setOpen(false);
   }
 
+  function openMenu(queryValue) {
+    if (!queryValue.trim()) return;
+    const rect = inputRef.current?.getBoundingClientRect();
+    if (rect) {
+      const scrollArea = inputRef.current.closest('[data-modal-scroll]');
+      const scrollRect = scrollArea?.getBoundingClientRect();
+      const lowerBoundary = Math.min(window.innerHeight, scrollRect?.bottom || window.innerHeight);
+      const upperBoundary = Math.max(0, scrollRect?.top || 0);
+      const spaceBelow = lowerBoundary - rect.bottom;
+      const spaceAbove = rect.top - upperBoundary;
+      setOpensUpward(spaceBelow < 240 && spaceAbove > spaceBelow);
+    }
+    setOpen(true);
+  }
+
   function handleKeyDown(event) {
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      setOpen(true);
-      setActiveIndex((current) => Math.min(current + 1, matches.length - 1));
+      openMenu(query);
+      if (matches.length) setActiveIndex((current) => Math.min(current + 1, matches.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
       setActiveIndex((current) => Math.max(current - 1, 0));
@@ -55,6 +83,7 @@ export default function SearchableSelect({ value = '', options = [], placeholder
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <input
+        ref={inputRef}
         className={`input h-10 pl-9 ${invalid ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`}
         role="combobox"
         aria-autocomplete="list"
@@ -63,34 +92,38 @@ export default function SearchableSelect({ value = '', options = [], placeholder
         value={query}
         placeholder={placeholder}
         autoComplete="off"
-        onFocus={() => setOpen(Boolean(query.trim()))}
+        onFocus={() => openMenu(query)}
         onBlur={() => window.setTimeout(() => setOpen(false), 100)}
         onChange={(event) => {
           setQuery(event.target.value);
           onChange(event.target.value);
           setActiveIndex(0);
-          setOpen(true);
+          openMenu(event.target.value);
         }}
         onKeyDown={handleKeyDown}
       />
       {open && query.trim() && (
-        <div id={listId} role="listbox" className="absolute z-30 mt-1 max-h-60 w-full overflow-y-auto rounded-md border border-slate-200 bg-white py-1 shadow-xl">
-          {matches.map((option, index) => (
-            <button
-              key={`${option.value}-${option.label}`}
-              type="button"
-              role="option"
-              aria-selected={option.value === value}
-              className={`flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm ${index === activeIndex ? 'bg-indigo-50 text-indigo-800' : 'text-slate-700 hover:bg-slate-50'}`}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => choose(option)}
-            >
-              <span>{option.label}</span>
-              {option.value === value && <Check className="h-4 w-4 shrink-0 text-indigo-600" />}
-            </button>
-          ))}
-          {!matches.length && <p className="px-3 py-3 text-sm text-slate-500">{noResultsText}</p>}
+        <div id={listId} role="listbox" className={`scrollbar-thin absolute z-40 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl ${opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+          {matches.map((option, index) => {
+            const { group, name } = splitLabel(option.label);
+            return (
+              <button
+                key={`${option.value}-${option.label}`}
+                type="button"
+                role="option"
+                aria-selected={option.value === value}
+                className={`flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors ${index === activeIndex ? 'bg-indigo-50 text-indigo-800' : 'text-slate-700 hover:bg-slate-50'}`}
+                onMouseDown={(event) => event.preventDefault()}
+                onMouseEnter={() => setActiveIndex(index)}
+                onClick={() => choose(option)}
+              >
+                {group && <span title={group} className={`max-w-24 shrink-0 truncate rounded-md px-1.5 py-0.5 text-[11px] font-semibold ${index === activeIndex ? 'bg-white text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>{group}</span>}
+                <span className="min-w-0 flex-1 truncate" title={name}>{name}</span>
+                {option.value === value && <Check className="h-4 w-4 shrink-0 text-indigo-600" />}
+              </button>
+            );
+          })}
+          {!matches.length && <div className="px-3 py-4 text-center text-sm text-slate-500">{noResultsText}</div>}
         </div>
       )}
     </div>
