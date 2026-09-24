@@ -5,6 +5,7 @@ import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Allocation, Task } from '../models/Work.js';
 import { Invoice, Payment } from '../models/Finance.js';
 import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { authorize, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createCrudController } from '../controllers/crudController.js';
@@ -74,6 +75,33 @@ function peopleOwnedData(req, body) {
   return employeeOwnedData(req, vendorOwnedData(req, body));
 }
 
+function passwordSetupStatus(account) {
+  if (!account) return 'Not set';
+  if (account.passwordSetAt) return 'Password set';
+  if (account.passwordSetupToken && account.passwordSetupExpires > new Date()) return 'Setup pending';
+  return 'Not set';
+}
+
+function enrichPeopleWithPasswordStatus(linkField) {
+  return async (items) => {
+    if (!items.length) return items;
+    const profileIds = items.map((item) => item._id);
+    const emails = items.map((item) => item.email?.trim().toLowerCase()).filter(Boolean);
+    const users = await User.find({ $or: [{ [linkField]: { $in: profileIds } }, ...(emails.length ? [{ email: { $in: emails } }] : [])] })
+      .select(`email ${linkField} passwordSetAt +passwordSetupToken +passwordSetupExpires`)
+      .lean();
+    const usersByProfile = new Map(users.filter((user) => user[linkField]).map((user) => [String(user[linkField]), user]));
+    const usersByEmail = new Map(users.map((user) => [user.email, user]));
+    return items.map((item) => {
+      const data = typeof item.toObject === 'function' ? item.toObject() : item;
+      return {
+        ...data,
+        passwordSetupStatus: passwordSetupStatus(usersByProfile.get(String(data._id)) || usersByEmail.get(data.email?.trim().toLowerCase()))
+      };
+    });
+  };
+}
+
 function routerFor(controller, rules = [], access = {}) {
   const router = express.Router();
   const readRoles = access.readRoles || ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'];
@@ -108,6 +136,7 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
   transformRead: maskOtherEmployeeContacts(['email', 'mobile']),
+  enrichList: enrichPeopleWithPasswordStatus('linkedCandidate'),
   readScope: (user) => {
     if (user.role === 'vendor') return vendorScope(user);
     if (user.role === 'employee') return {};
@@ -130,6 +159,7 @@ export const vendorRoutes = routerFor(createCrudController(Vendor, {
   prepareCreate: employeeOwnedData,
   prepareUpdate: employeeOwnedData,
   transformRead: maskOtherEmployeeContacts(['email', 'phone']),
+  enrichList: enrichPeopleWithPasswordStatus('linkedVendor'),
   readScope: (user) => {
     if (user.role === 'vendor') return user.linkedVendor ? { _id: user.linkedVendor } : { _id: null };
     if (user.role === 'employee') return {};
@@ -151,6 +181,7 @@ export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
   transformRead: maskOtherEmployeeContacts(['email', 'phone']),
+  enrichList: enrichPeopleWithPasswordStatus('linkedFreelancer'),
   readScope: (user) => {
     if (user.role === 'vendor') return vendorScope(user);
     if (user.role === 'employee') return {};

@@ -4,6 +4,14 @@ import StatusBadge from './StatusBadge.jsx';
 
 function renderValue(row, key) {
   const value = row[key];
+  if (key === 'passwordSetupStatus') {
+    const styles = {
+      'Password set': 'border-emerald-200 bg-emerald-50 text-emerald-700',
+      'Setup pending': 'border-amber-200 bg-amber-50 text-amber-700',
+      'Not set': 'border-slate-200 bg-slate-50 text-slate-600'
+    };
+    return <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${styles[value] || styles['Not set']}`}>{value || 'Not set'}</span>;
+  }
   if (key.toLowerCase().includes('status') || key === 'priority') return <StatusBadge value={value} />;
   if (key === 'progress' || key === 'currentWorkload') {
     return (

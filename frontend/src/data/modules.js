@@ -50,7 +50,7 @@ export const moduleConfig = {
     singular: 'Candidate',
     endpoint: 'candidates',
     requiredFields: ['fullName', 'mobile'],
-    columns: ['fullName', 'email', 'mobile', 'vendor', 'ownerEmployee', 'language', 'status', 'completedProjectCount'],
+    columns: ['fullName', 'email', 'mobile', 'vendor', 'ownerEmployee', 'language', 'passwordSetupStatus', 'status', 'completedProjectCount'],
     fields: [
       ['fullName', 'Full Name'],
       ['mobile', 'Mobile Number'],
@@ -69,7 +69,7 @@ export const moduleConfig = {
     title: 'Vendors',
     singular: 'Vendor',
     endpoint: 'vendors',
-    columns: ['agencyName', 'contactPerson', 'email', 'phone', 'ownerEmployee', 'location', 'languagesAvailable', 'projectTypes', 'teamCapacity', 'status'],
+    columns: ['agencyName', 'contactPerson', 'email', 'phone', 'ownerEmployee', 'location', 'languagesAvailable', 'passwordSetupStatus', 'projectTypes', 'teamCapacity', 'status'],
     fields: [
       ['agencyName', 'Vendor / Agency Name'],
       ['contactPerson', 'Contact Person'],
@@ -93,7 +93,7 @@ export const moduleConfig = {
     title: 'Freelancers',
     singular: 'Freelancer',
     endpoint: 'freelancers',
-    columns: ['name', 'email', 'phone', 'vendor', 'ownerEmployee', 'language', 'projectTypes', 'status'],
+    columns: ['name', 'email', 'phone', 'vendor', 'ownerEmployee', 'language', 'passwordSetupStatus', 'projectTypes', 'status'],
     fields: [
       ['name', 'Name'],
       ['email', 'Email', 'email'],

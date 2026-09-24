@@ -41,7 +41,9 @@ export function createCrudController(Model, options = {}) {
           Model.find(scoped).populate(populate).sort({ createdAt: -1 }).skip(skip).limit(safeLimit),
           Model.countDocuments(scoped)
         ]);
-        res.json({ items: items.map((item) => present(item, req)), total, page: safePage, pages: Math.ceil(total / safeLimit) || 1 });
+        const presentedItems = items.map((item) => present(item, req));
+        const enrichedItems = options.enrichList ? await options.enrichList(presentedItems, req) : presentedItems;
+        res.json({ items: enrichedItems, total, page: safePage, pages: Math.ceil(total / safeLimit) || 1 });
       } catch (error) {
         next(error);
       }
