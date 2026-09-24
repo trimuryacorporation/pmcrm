@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from 'react';
 import SearchableSelect from './SearchableSelect.jsx';
 import SelectField from './SelectField.jsx';
 import MultiSearchableSelect from './MultiSearchableSelect.jsx';
+import LanguageTeamCounts from './LanguageTeamCounts.jsx';
 
 export default function ModalForm({ title, fields, initial, onClose, onSubmit, requiredFields }) {
   const titleId = useId();
@@ -13,7 +14,15 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
   useEffect(() => setForm(initial || {}), [initial]);
 
   function setValue(name, value) {
-    setForm((current) => ({ ...current, [name]: value }));
+    setForm((current) => {
+      const next = { ...current, [name]: value };
+      fields.forEach(([fieldName, , type, sourceField]) => {
+        if (type !== 'languageTeamCounts' || sourceField !== name) return;
+        const selectedLanguages = Array.isArray(value) ? value : value ? [value] : [];
+        next[fieldName] = (current[fieldName] || []).filter((item) => selectedLanguages.includes(item.language));
+      });
+      return next;
+    });
   }
 
   function fieldValue(name, type) {
@@ -56,7 +65,7 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
         </div>
         <div data-modal-scroll className="scrollbar-thin grid min-h-0 flex-1 gap-x-4 gap-y-4 overflow-y-auto px-5 py-4 sm:grid-cols-2 sm:px-6 sm:py-5">
           {fields.map(([name, label, type = 'text', options]) => (
-            <label key={name} className={['textarea', 'file'].includes(type) ? 'md:col-span-2' : ''}>
+            <label key={name} className={['textarea', 'file', 'languageTeamCounts'].includes(type) ? 'md:col-span-2' : ''}>
               <span className="mb-1.5 block text-sm font-semibold text-slate-700">
                 {label}
                 {required.includes(name) && <span className="ml-1 text-rose-500" aria-hidden="true">*</span>}
@@ -65,6 +74,8 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
                 <SearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Type to search ${label}`} noResultsText={`No ${label.toLowerCase()} found`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'multicombobox' ? (
                 <MultiSearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Search and select ${label.toLowerCase()}`} noResultsText={`No ${label.toLowerCase()} found`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
+              ) : type === 'languageTeamCounts' ? (
+                <LanguageTeamCounts languages={form[options]} value={form[name]} onChange={(value) => setValue(name, value)} />
               ) : type === 'select' ? (
                 <SelectField value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Select ${label}`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'file' ? (

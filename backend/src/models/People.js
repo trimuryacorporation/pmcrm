@@ -1,6 +1,10 @@
 import mongoose from 'mongoose';
 
 const documentSchema = new mongoose.Schema({ name: String, url: String }, { _id: false });
+const languageTeamCountSchema = new mongoose.Schema({
+  language: { type: String, required: true },
+  teamCount: { type: Number, min: 0, default: 0 }
+}, { _id: false });
 
 const candidateSchema = new mongoose.Schema(
   {
@@ -35,6 +39,7 @@ const vendorSchema = new mongoose.Schema(
     address: String,
     location: String,
     languagesAvailable: [String],
+    languageTeamCounts: [languageTeamCountSchema],
     projectTypes: [String],
     teamCapacity: { type: Number, default: 0 },
     dailyProductionCapacity: String,
@@ -57,6 +62,7 @@ const freelancerSchema = new mongoose.Schema(
     phone: String,
     location: String,
     language: [String],
+    languageTeamCounts: [languageTeamCountSchema],
     projectTypes: [String],
     experience: String,
     rate: { type: Number, default: 0 },
