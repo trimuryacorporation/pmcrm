@@ -1,0 +1,14 @@
+import { LockKeyhole } from 'lucide-react';
+import { useState } from 'react';
+import toast from 'react-hot-toast';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { endpoints } from '../utils/api.js';
+
+export default function ResetPassword() {
+  const [params] = useSearchParams(); const navigate = useNavigate(); const token = params.get('token') || '';
+  const [password, setPassword] = useState(''); const [confirmPassword, setConfirmPassword] = useState(''); const [saving, setSaving] = useState(false);
+  async function submit(event) { event.preventDefault(); if (password !== confirmPassword) return toast.error('Passwords do not match'); setSaving(true); try { const result = await endpoints.resetPassword(token, password); toast.success(result.message); navigate('/login', { replace: true }); } catch (error) { toast.error(error.message); } finally { setSaving(false); } }
+  if (!token) return <main className="grid min-h-screen place-items-center bg-slate-50 p-6"><section className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"><h1 className="text-2xl font-bold">Reset link unavailable</h1><p className="mt-3 text-sm text-slate-600">This reset link is incomplete.</p><Link className="btn-secondary mt-6 inline-flex" to="/forgot-password">Request a new link</Link></section></main>;
+  return <main className="grid min-h-screen place-items-center bg-slate-50 p-6"><section className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl"><p className="text-sm font-semibold uppercase text-indigo-600">Password recovery</p><h1 className="mt-1 text-3xl font-bold text-slate-950">Create a new password</h1><p className="mt-2 text-sm text-slate-500">Choose a strong password with at least 8 characters.</p><form className="mt-7" onSubmit={submit}><PasswordField label="New password" value={password} onChange={setPassword} /><div className="mt-4"><PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} /></div><button className="btn-primary mt-6 w-full" disabled={saving}>{saving ? 'Resetting password...' : 'Reset password'}</button></form></section></main>;
+}
+function PasswordField({ label, value, onChange }) { return <label className="block"><span className="mb-1 block text-sm font-semibold text-slate-700">{label}</span><div className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-100"><LockKeyhole className="h-4 w-4 text-slate-400" /><input className="w-full outline-none" type="password" autoComplete="new-password" minLength="8" required value={value} onChange={(event) => onChange(event.target.value)} /></div></label>; }
