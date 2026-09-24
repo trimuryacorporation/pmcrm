@@ -12,6 +12,7 @@ import { createCrudController } from '../controllers/crudController.js';
 import { createAllocation } from '../controllers/allocationController.js';
 import { notifyProjectCreated } from '../services/projectNotificationService.js';
 import { inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
+import { ensureUniquePersonContact } from '../services/personContactService.js';
 
 const adminRoles = ['super_admin', 'admin'];
 const employeeManagers = [...adminRoles, 'employee'];
@@ -75,6 +76,13 @@ function peopleOwnedData(req, body) {
   return employeeOwnedData(req, vendorOwnedData(req, body));
 }
 
+async function peopleDataWithUniqueContact(req, body, type, ownership) {
+  const data = ownership(req, body);
+  if (data.email) data.email = data.email.trim().toLowerCase();
+  await ensureUniquePersonContact({ type, data, id: req.params.id });
+  return data;
+}
+
 function passwordSetupStatus(account) {
   if (!account) return 'Not set';
   if (account.passwordSetAt) return 'Password set';
@@ -119,12 +127,9 @@ export const projectRoutes = routerFor(
     searchFieldsForUser: (user) => adminRoles.includes(user.role) ? ['name', 'code', 'clientName'] : ['name', 'code'],
     transformRead: hideAdminOnlyFields(['clientName', 'clientRate']),
     afterCreate: notifyProjectCreated,
-    userScope: (user) => {
-      if (user.role === 'employee') return { employees: user.linkedEmployee };
-      if (user.role === 'vendor') return { vendors: user.linkedVendor };
-      if (user.role === 'freelancer') return { freelancers: user.linkedFreelancer };
-      return {};
-    }
+    // Projects created by the CRM team are visible to every permitted project user.
+    // Sensitive client fields are removed by transformRead for non-admin users.
+    userScope: () => ({})
   }),
   [body('name').notEmpty(), body('code').notEmpty(), body('clientName').notEmpty()]
 );
@@ -133,8 +138,8 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
   populate: 'assignedProject vendor ownerEmployee',
   searchFields: ['fullName', 'email'],
   languageField: 'language',
-  prepareCreate: peopleOwnedData,
-  prepareUpdate: peopleOwnedData,
+  prepareCreate: (req, body) => peopleDataWithUniqueContact(req, body, 'Candidate', peopleOwnedData),
+  prepareUpdate: (req, body) => peopleDataWithUniqueContact(req, body, 'Candidate', peopleOwnedData),
   transformRead: maskOtherEmployeeContacts(['email', 'mobile']),
   enrichList: enrichPeopleWithPasswordStatus('linkedCandidate'),
   readScope: (user) => {
@@ -156,8 +161,8 @@ export const vendorRoutes = routerFor(createCrudController(Vendor, {
   searchFields: ['agencyName'],
   afterCreate: inviteVendor,
   languageField: 'languagesAvailable',
-  prepareCreate: employeeOwnedData,
-  prepareUpdate: employeeOwnedData,
+  prepareCreate: (req, body) => peopleDataWithUniqueContact(req, body, 'Vendor', employeeOwnedData),
+  prepareUpdate: (req, body) => peopleDataWithUniqueContact(req, body, 'Vendor', employeeOwnedData),
   transformRead: maskOtherEmployeeContacts(['email', 'phone']),
   enrichList: enrichPeopleWithPasswordStatus('linkedVendor'),
   readScope: (user) => {
@@ -178,8 +183,8 @@ export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
   searchFields: ['name'],
   afterCreate: inviteFreelancer,
   languageField: 'language',
-  prepareCreate: peopleOwnedData,
-  prepareUpdate: peopleOwnedData,
+  prepareCreate: (req, body) => peopleDataWithUniqueContact(req, body, 'Freelancer', peopleOwnedData),
+  prepareUpdate: (req, body) => peopleDataWithUniqueContact(req, body, 'Freelancer', peopleOwnedData),
   transformRead: maskOtherEmployeeContacts(['email', 'phone']),
   enrichList: enrichPeopleWithPasswordStatus('linkedFreelancer'),
   readScope: (user) => {

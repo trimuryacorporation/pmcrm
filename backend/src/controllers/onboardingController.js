@@ -1,6 +1,7 @@
 import { body } from 'express-validator';
 import { Candidate, Freelancer, Vendor } from '../models/People.js';
 import { inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
+import { ensureUniquePersonContact } from '../services/personContactService.js';
 
 const types = ['candidate', 'vendor', 'freelancer'];
 
@@ -56,7 +57,10 @@ export async function submitOnboarding(req, res, next) {
   try {
     const type = req.body.type;
     const Model = modelByType[type];
-    person = await Model.create(allowedData(type, req.body));
+    const data = allowedData(type, req.body);
+    const personType = type[0].toUpperCase() + type.slice(1);
+    await ensureUniquePersonContact({ type: personType, data });
+    person = await Model.create(data);
 
     if (type === 'vendor') await inviteVendor(person);
     if (type === 'freelancer') await inviteFreelancer(person);

@@ -33,11 +33,8 @@ export async function uploadFiles(req, res, next) {
 
 export async function downloadProjectFile(req, res, next) {
   try {
-    const projectScope = { _id: req.params.projectId };
-    if (req.user.role === 'employee') projectScope.employees = req.user.linkedEmployee;
-    if (req.user.role === 'vendor') projectScope.vendors = req.user.linkedVendor;
-    if (req.user.role === 'freelancer') projectScope.freelancers = req.user.linkedFreelancer;
-    const project = await Project.findOne(projectScope);
+    // Match the project-list visibility policy: permitted project users can download shared project files.
+    const project = await Project.findById(req.params.projectId);
     const file = project?.files?.[Number(req.params.fileIndex)];
     if (!file?.key) {
       res.status(404);

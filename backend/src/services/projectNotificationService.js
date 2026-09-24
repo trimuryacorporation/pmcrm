@@ -17,6 +17,10 @@ function whatsappNumber(phone, countryCode) {
   return digits;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+
 async function updateLog(log, status, details = {}) {
   await DeliveryLog.findByIdAndUpdate(log._id, { status, ...details, ...(status === 'sent' ? { sentAt: new Date() } : {}) });
 }
@@ -27,12 +31,18 @@ async function sendEmail(project, recipient, type, transport, config) {
   if (!destination || !transport) return;
   try {
     const deadline = project.endDate ? new Date(project.endDate).toLocaleDateString('en-IN') : 'To be confirmed';
+    const loginUrl = (process.env.APP_URL || (process.env.CLIENT_URL || '').split(',').map((value) => value.trim()).find((value) => value.startsWith('http')) || 'http://localhost:5173').replace(/\/$/, '') + '/login';
+    const recipientName = escapeHtml(recipient.name);
+    const projectName = escapeHtml(project.name);
+    const projectCode = escapeHtml(project.code);
+    const projectDeadline = escapeHtml(deadline);
+    const projectPriority = escapeHtml(project.priority);
     const info = await transport.sendMail({
       from: config.from || config.user,
       to: destination,
       subject: `New project assigned: ${project.name}`,
-      text: `Hello ${recipient.name},\n\nA new project is available in Trimurya Enterprise CRM.\n\nProject: ${project.name}\nCode: ${project.code}\nClient: ${project.clientName}\nDeadline: ${deadline}\nPriority: ${project.priority}\n\nPlease log in to the CRM to review the project.`,
-      html: `<p>Hello <strong>${recipient.name}</strong>,</p><p>A new project is available in Trimurya Enterprise CRM.</p><table><tr><td>Project</td><td><strong>${project.name}</strong></td></tr><tr><td>Code</td><td>${project.code}</td></tr><tr><td>Client</td><td>${project.clientName}</td></tr><tr><td>Deadline</td><td>${deadline}</td></tr><tr><td>Priority</td><td>${project.priority}</td></tr></table><p>Please log in to the CRM to review the project.</p>`
+      text: `Hello ${recipient.name},\n\nA new project has been assigned to you in Trimurya Enterprise CRM.\n\nProject: ${project.name}\nCode: ${project.code}\nDeadline: ${deadline}\nPriority: ${project.priority}\n\nLog in to review the project: ${loginUrl}`,
+      html: `<div style="margin:0;padding:32px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a"><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 10px 30px rgba(15,23,42,.12)"><tr><td style="padding:28px 32px;background:linear-gradient(135deg,#111827,#312e81);color:#ffffff"><div style="font-size:13px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:#c7d2fe">Trimurya Enterprise CRM</div><h1 style="margin:10px 0 0;font-size:26px;line-height:34px;color:#ffffff">New project assigned</h1></td></tr><tr><td style="padding:32px"><p style="margin:0 0 14px;font-size:16px;line-height:24px">Hello <strong>${recipientName}</strong>,</p><p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#475569">A new project is available for you. Review the assignment details and continue your work in CRM.</p><table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc"><tr><td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#64748b">PROJECT</td><td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:14px;font-weight:700;text-align:right;color:#0f172a">${projectName}</td></tr><tr><td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#64748b">PROJECT CODE</td><td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:14px;font-weight:700;text-align:right;color:#0f172a">${projectCode}</td></tr><tr><td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#64748b">DEADLINE</td><td style="padding:14px 16px;border-bottom:1px solid #e2e8f0;font-size:14px;font-weight:700;text-align:right;color:#0f172a">${projectDeadline}</td></tr><tr><td style="padding:14px 16px;font-size:13px;color:#64748b">PRIORITY</td><td style="padding:14px 16px;font-size:14px;font-weight:700;text-align:right;color:#4f46e5">${projectPriority}</td></tr></table><div style="margin-top:28px;text-align:center"><a href="${loginUrl}" style="display:inline-block;border-radius:8px;background:#4f46e5;padding:13px 22px;color:#ffffff;font-size:14px;font-weight:700;text-decoration:none">Open CRM</a></div><p style="margin:28px 0 0;font-size:12px;line-height:18px;text-align:center;color:#94a3b8">This notification was sent by Trimurya Enterprise CRM.</p></td></tr></table></div>`
     });
     await updateLog(log, 'sent', { providerMessageId: info.messageId });
   } catch (error) {

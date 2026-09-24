@@ -5,10 +5,18 @@ import { writeAudit } from '../utils/audit.js';
 
 async function mergedConfig(input) {
   const current = await SystemSetting.findOne({ key: 'storage' }).lean();
+  let savedAccessKey = '';
+  let savedSecretKey = '';
+  try {
+    savedAccessKey = current?.storage?.accessKeyIdEncrypted ? decrypt(current.storage.accessKeyIdEncrypted) : '';
+    savedSecretKey = current?.storage?.secretAccessKeyEncrypted ? decrypt(current.storage.secretAccessKeyEncrypted) : '';
+  } catch {
+    // Saved values may belong to a previous SETTINGS_ENCRYPTION_KEY; fall back to deployment settings.
+  }
   return {
     accountId: input.accountId || current?.storage?.accountId,
-    accessKeyId: input.accessKeyId || (current?.storage?.accessKeyIdEncrypted ? decrypt(current.storage.accessKeyIdEncrypted) : ''),
-    secretAccessKey: input.secretAccessKey || (current?.storage?.secretAccessKeyEncrypted ? decrypt(current.storage.secretAccessKeyEncrypted) : ''),
+    accessKeyId: input.accessKeyId || savedAccessKey || process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: input.secretAccessKey || savedSecretKey || process.env.R2_SECRET_ACCESS_KEY || '',
     bucket: input.bucket || current?.storage?.bucket
   };
 }

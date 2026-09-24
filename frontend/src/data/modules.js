@@ -24,7 +24,7 @@ export const moduleConfig = {
     endpoint: 'projects',
     adminOnlyColumns: ['clientName', 'clientRate'],
     adminOnlyFields: ['clientName', 'clientRate'],
-    columns: ['name', 'code', 'clientName', 'projectType', 'requiredLanguage', 'clientRate', 'vendorRate', 'freelancerRate', 'status', 'priority', 'progress'],
+    columns: ['name', 'code', 'clientName', 'projectType', 'requiredLanguage', 'currency', 'clientRate', 'vendorRate', 'freelancerRate', 'status', 'priority', 'progress'],
     fields: [
       ['name', 'Project Name'],
       ['code', 'Project Code'],
@@ -32,6 +32,7 @@ export const moduleConfig = {
       ['projectType', 'Project Type', 'multicombobox', PROJECT_TYPE_OPTIONS],
       ['requiredLanguage', 'Required Language', 'multicombobox', LANGUAGE_OPTIONS],
       ['budget', 'Budget', 'number'],
+      ['currency', 'Currency', 'select', ['INR', 'USD']],
       ['clientRate', 'Client Rate', 'number'],
       ['vendorRate', 'Vendor Rate', 'number'],
       ['freelancerRate', 'Freelancer Rate', 'number'],

@@ -4,6 +4,9 @@ import StatusBadge from './StatusBadge.jsx';
 
 function renderValue(row, key) {
   const value = row[key];
+  if (['budget', 'paymentRate', 'clientRate', 'vendorRate', 'freelancerRate', 'rate', 'amount'].includes(key) && value !== undefined && value !== null) {
+    return new Intl.NumberFormat('en-IN', { style: 'currency', currency: row.currency || 'INR', maximumFractionDigits: 2 }).format(value);
+  }
   if (key === 'passwordSetupStatus') {
     const styles = {
       'Password set': 'border-emerald-200 bg-emerald-50 text-emerald-700',

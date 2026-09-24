@@ -21,6 +21,7 @@ const projectSchema = new mongoose.Schema(
     startDate: Date,
     endDate: Date,
     budget: { type: Number, default: 0 },
+    currency: { type: String, enum: ['INR', 'USD'], default: 'INR' },
     paymentRate: { type: Number, default: 0 },
     clientRate: { type: Number, min: 0, default: 0 },
     vendorRate: { type: Number, min: 0, default: 0 },

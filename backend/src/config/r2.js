@@ -5,12 +5,18 @@ import { decrypt } from '../utils/encryption.js';
 export async function getR2Config() {
   const setting = await SystemSetting.findOne({ key: 'storage' }).lean();
   if (setting?.storage?.accountId && setting.storage.accessKeyIdEncrypted && setting.storage.secretAccessKeyEncrypted && setting.storage.bucket) {
-    return {
-      accountId: setting.storage.accountId,
-      accessKeyId: decrypt(setting.storage.accessKeyIdEncrypted),
-      secretAccessKey: decrypt(setting.storage.secretAccessKeyEncrypted),
-      bucket: setting.storage.bucket
-    };
+    try {
+      return {
+        accountId: setting.storage.accountId,
+        accessKeyId: decrypt(setting.storage.accessKeyIdEncrypted),
+        secretAccessKey: decrypt(setting.storage.secretAccessKeyEncrypted),
+        bucket: setting.storage.bucket
+      };
+    } catch (error) {
+      // A restored database or a changed encryption key can make old saved credentials unreadable.
+      // In that case, use the deployment environment credentials instead of blocking file uploads.
+      console.warn(`Saved R2 credentials could not be decrypted: ${error.message}`);
+    }
   }
   const config = {
     accountId: process.env.R2_ACCOUNT_ID,
