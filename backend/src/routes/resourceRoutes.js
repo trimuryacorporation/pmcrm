@@ -16,6 +16,25 @@ const adminRoles = ['super_admin', 'admin'];
 const vendorManagers = [...adminRoles, 'vendor'];
 const employeeManagers = [...adminRoles, 'employee'];
 const peopleManagers = [...adminRoles, 'vendor', 'employee'];
+const hiddenContact = '******';
+
+function employeeOwnedScope(user) {
+  return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
+}
+
+function maskOtherEmployeeContacts(fields) {
+  return (item, req) => {
+    if (req.user.role !== 'employee') return item;
+
+    const data = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+    const ownerId = data.ownerEmployee?._id || data.ownerEmployee;
+    const isOwner = Boolean(req.user.linkedEmployee) && String(ownerId || '') === String(req.user.linkedEmployee);
+    data._canManage = isOwner;
+
+    if (!isOwner) fields.forEach((field) => { data[field] = hiddenContact; });
+    return data;
+  };
+}
 
 function vendorScope(user, fallback = {}) {
   if (user.role !== 'vendor') return fallback;
@@ -78,9 +97,15 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
   searchFields: ['fullName', 'email'],
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
-  userScope: (user) => {
+  transformRead: maskOtherEmployeeContacts(['email', 'mobile']),
+  readScope: (user) => {
     if (user.role === 'vendor') return vendorScope(user);
-    if (user.role === 'employee') return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
+    if (user.role === 'employee') return {};
+    return {};
+  },
+  writeScope: (user) => {
+    if (user.role === 'vendor') return vendorScope(user);
+    if (user.role === 'employee') return employeeOwnedScope(user);
     return {};
   }
 }), [
@@ -92,9 +117,15 @@ export const vendorRoutes = routerFor(createCrudController(Vendor, {
   searchFields: ['agencyName'],
   prepareCreate: employeeOwnedData,
   prepareUpdate: employeeOwnedData,
-  userScope: (user) => {
+  transformRead: maskOtherEmployeeContacts(['email', 'phone']),
+  readScope: (user) => {
     if (user.role === 'vendor') return user.linkedVendor ? { _id: user.linkedVendor } : { _id: null };
-    if (user.role === 'employee') return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
+    if (user.role === 'employee') return {};
+    return {};
+  },
+  writeScope: (user) => {
+    if (user.role === 'vendor') return user.linkedVendor ? { _id: user.linkedVendor } : { _id: null };
+    if (user.role === 'employee') return employeeOwnedScope(user);
     return {};
   }
 }), [
@@ -105,9 +136,16 @@ export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
   searchFields: ['name'],
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
-  userScope: (user) => {
+  transformRead: maskOtherEmployeeContacts(['email', 'phone']),
+  readScope: (user) => {
     if (user.role === 'vendor') return vendorScope(user);
-    if (user.role === 'employee') return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
+    if (user.role === 'employee') return {};
+    if (user.role === 'freelancer') return user.linkedFreelancer ? { _id: user.linkedFreelancer } : { _id: null };
+    return {};
+  },
+  writeScope: (user) => {
+    if (user.role === 'vendor') return vendorScope(user);
+    if (user.role === 'employee') return employeeOwnedScope(user);
     if (user.role === 'freelancer') return user.linkedFreelancer ? { _id: user.linkedFreelancer } : { _id: null };
     return {};
   }

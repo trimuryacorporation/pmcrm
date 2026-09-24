@@ -42,8 +42,9 @@ export default function DataTable({ rows, columns, basePath, onEdit, onDelete, o
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 bg-white">
-            {rows.map((row) => (
-              <tr key={row._id} className="hover:bg-slate-50">
+            {rows.map((row) => {
+              const canManageRow = row._canManage !== false;
+              return <tr key={row._id} className="hover:bg-slate-50">
                 {columns.map((col) => (
                   <td key={col} className="whitespace-nowrap px-4 py-3 text-slate-700">
                     {renderValue(row, col)}
@@ -57,16 +58,16 @@ export default function DataTable({ rows, columns, basePath, onEdit, onDelete, o
                     {onInvite && <button disabled={invitingId === row._id} onClick={() => onInvite(row)} className="rounded-lg border border-slate-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-50" title="Send invite email">
                       <Mail className={`h-4 w-4 ${invitingId === row._id ? 'animate-pulse' : ''}`} />
                     </button>}
-                    {onEdit && <button onClick={() => onEdit(row)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="Edit">
+                    {onEdit && canManageRow && <button onClick={() => onEdit(row)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="Edit">
                       <Pencil className="h-4 w-4" />
                     </button>}
-                    {onDelete && <button onClick={() => onDelete(row)} className="rounded-lg border border-slate-200 p-2 text-rose-600 hover:bg-rose-50" title="Delete">
+                    {onDelete && canManageRow && <button onClick={() => onDelete(row)} className="rounded-lg border border-slate-200 p-2 text-rose-600 hover:bg-rose-50" title="Delete">
                       <Trash2 className="h-4 w-4" />
                     </button>}
                   </div>
                 </td>
-              </tr>
-            ))}
+              </tr>;
+            })}
           </tbody>
         </table>
       </div>

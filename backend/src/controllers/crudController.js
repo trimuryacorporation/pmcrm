@@ -4,10 +4,16 @@ export function createCrudController(Model, options = {}) {
   const populate = options.populate || '';
   const searchFields = options.searchFields || [];
 
-  function scopeQuery(req, base = {}) {
+  function scopeQuery(req, base = {}, operation = 'read') {
     if (['super_admin', 'admin'].includes(req.user.role)) return base;
-    if (options.userScope) return { ...base, ...options.userScope(req.user) };
+    const operationScope = operation === 'write' ? options.writeScope : options.readScope;
+    const getScope = operationScope || options.userScope;
+    if (getScope) return { ...base, ...getScope(req.user) };
     return base;
+  }
+
+  function present(item, req) {
+    return options.transformRead ? options.transformRead(item, req) : item;
   }
 
   return {
@@ -24,7 +30,7 @@ export function createCrudController(Model, options = {}) {
           Model.find(scoped).populate(populate).sort({ createdAt: -1 }).skip(skip).limit(Number(limit)),
           Model.countDocuments(scoped)
         ]);
-        res.json({ items, total, page: Number(page), pages: Math.ceil(total / Number(limit)) || 1 });
+        res.json({ items: items.map((item) => present(item, req)), total, page: Number(page), pages: Math.ceil(total / Number(limit)) || 1 });
       } catch (error) {
         next(error);
       }
@@ -36,7 +42,7 @@ export function createCrudController(Model, options = {}) {
           res.status(404);
           throw new Error('Record not found');
         }
-        res.json(item);
+        res.json(present(item, req));
       } catch (error) {
         next(error);
       }
@@ -58,7 +64,7 @@ export function createCrudController(Model, options = {}) {
     async update(req, res, next) {
       try {
         const data = options.prepareUpdate ? await options.prepareUpdate(req, req.body) : req.body;
-        const item = await Model.findOneAndUpdate(scopeQuery(req, { _id: req.params.id }), data, {
+        const item = await Model.findOneAndUpdate(scopeQuery(req, { _id: req.params.id }, 'write'), data, {
           new: true,
           runValidators: true
         }).populate(populate);
@@ -74,7 +80,7 @@ export function createCrudController(Model, options = {}) {
     },
     async remove(req, res, next) {
       try {
-        const item = await Model.findOneAndDelete(scopeQuery(req, { _id: req.params.id }));
+        const item = await Model.findOneAndDelete(scopeQuery(req, { _id: req.params.id }, 'write'));
         if (!item) {
           res.status(404);
           throw new Error('Record not found');

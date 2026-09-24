@@ -1,7 +1,7 @@
 import { Check, Search } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 
-export default function SearchableSelect({ value = '', options = [], placeholder, onChange }) {
+export default function SearchableSelect({ value = '', options = [], placeholder, onChange, invalid = false }) {
   const listId = useId();
   const normalizedOptions = useMemo(() => options.map((option) => (
     typeof option === 'object' ? option : { value: option, label: option }
@@ -55,7 +55,7 @@ export default function SearchableSelect({ value = '', options = [], placeholder
     <div className="relative">
       <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
       <input
-        className="input pl-9"
+        className={`input h-10 pl-9 ${invalid ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`}
         role="combobox"
         aria-autocomplete="list"
         aria-controls={listId}

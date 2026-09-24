@@ -41,7 +41,7 @@ export default function DetailPage({ module }) {
           </h3>
           <dl className="grid gap-4 md:grid-cols-2">
             {Object.entries(item)
-              .filter(([key]) => !['_id', '__v', 'createdAt', 'updatedAt', 'files'].includes(key))
+              .filter(([key]) => !key.startsWith('_') && !['__v', 'createdAt', 'updatedAt', 'files'].includes(key))
               .slice(0, 24)
               .map(([key, value]) => (
                 <div key={key} className="rounded-lg bg-slate-50 p-3">

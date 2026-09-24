@@ -64,7 +64,7 @@ export const moduleConfig = {
     title: 'Vendors',
     singular: 'Vendor',
     endpoint: 'vendors',
-    columns: ['agencyName', 'contactPerson', 'email', 'ownerEmployee', 'location', 'teamCapacity', 'status'],
+    columns: ['agencyName', 'contactPerson', 'email', 'phone', 'ownerEmployee', 'location', 'teamCapacity', 'status'],
     fields: [
       ['agencyName', 'Vendor / Agency Name'],
       ['contactPerson', 'Contact Person'],
