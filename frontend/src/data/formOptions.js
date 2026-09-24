@@ -40,6 +40,7 @@ const internationalLanguages = ISO6391.getAllNames()
   .sort((a, b) => a.localeCompare(b));
 
 export const LANGUAGE_OPTIONS = [
+  { value: 'Any / All Languages', label: 'Any / All Languages' },
   ...indianLanguages.map((name) => ({ value: name, label: `India - ${name}` })),
   ...pakistanLanguages.map((name) => ({ value: `Pakistan - ${name}`, label: `Pakistan - ${name}` })),
   ...nigerianLanguages.map((name) => ({ value: `Nigeria - ${name}`, label: `Nigeria - ${name}` })),

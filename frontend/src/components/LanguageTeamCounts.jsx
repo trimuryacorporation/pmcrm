@@ -26,10 +26,10 @@ export default function LanguageTeamCounts({ languages = [], value = [], onChang
         <div key={language} className="rounded-lg border border-indigo-100 bg-indigo-50/50 p-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-slate-800">
             <Users className="h-4 w-4 text-indigo-600" />
-            <span className="truncate" title={language}>{language}</span>
+            <span className="truncate" title={language}>{language === 'Any / All Languages' ? 'All Languages' : language}</span>
           </div>
           <div className="mt-2 text-xs font-medium text-slate-600">
-            <span>Team count</span>
+            <span>{language === 'Any / All Languages' ? 'Total team count for all languages' : 'Team count'}</span>
             <input
               className="input mt-1 h-9 bg-white"
               type="number"
