@@ -10,6 +10,7 @@ import Allocation from './pages/Allocation.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import DetailPage from './pages/DetailPage.jsx';
 import Login from './pages/Login.jsx';
+import Onboarding from './pages/Onboarding.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import SetPassword from './pages/SetPassword.jsx';
@@ -28,6 +29,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <Router>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/set-password" element={<SetPassword />} />
