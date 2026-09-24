@@ -44,7 +44,7 @@ export const moduleConfig = {
     title: 'Candidates',
     singular: 'Candidate',
     endpoint: 'candidates',
-    columns: ['fullName', 'email', 'mobile', 'vendor', 'language', 'status', 'completedProjectCount'],
+    columns: ['fullName', 'email', 'mobile', 'vendor', 'ownerEmployee', 'language', 'status', 'completedProjectCount'],
     fields: [
       ['fullName', 'Full Name'],
       ['mobile', 'Mobile Number'],

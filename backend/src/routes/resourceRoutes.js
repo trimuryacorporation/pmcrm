@@ -74,14 +74,18 @@ export const projectRoutes = routerFor(
 );
 
 export const candidateRoutes = routerFor(createCrudController(Candidate, {
-  populate: 'assignedProject vendor',
+  populate: 'assignedProject vendor ownerEmployee',
   searchFields: ['fullName', 'email'],
-  prepareCreate: vendorOwnedData,
-  prepareUpdate: vendorOwnedData,
-  userScope: (user) => vendorScope(user)
+  prepareCreate: peopleOwnedData,
+  prepareUpdate: peopleOwnedData,
+  userScope: (user) => {
+    if (user.role === 'vendor') return vendorScope(user);
+    if (user.role === 'employee') return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
+    return {};
+  }
 }), [
   body('fullName').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: vendorManagers });
+], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: peopleManagers });
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
   populate: 'assignedProjects ownerEmployee',
   searchFields: ['agencyName'],

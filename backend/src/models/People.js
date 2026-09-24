@@ -15,6 +15,7 @@ const candidateSchema = new mongoose.Schema(
     experience: String,
     availabilityStatus: { type: String, default: 'Available' },
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor', index: true },
+    ownerEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', index: true },
     assignedProject: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     candidateType: { type: String, enum: ['Individual', 'Team Member'], default: 'Individual' },
     documents: [documentSchema],
