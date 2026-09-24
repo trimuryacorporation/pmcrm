@@ -17,7 +17,6 @@ const __dirname = path.dirname(__filename);
 const configuredOrigins = (process.env.CLIENT_URL || '').split(',');
 const allowedOrigins = [
   'http://localhost:5173',
-  'https://pmcrm-five.vercel.app',
   ...configuredOrigins
 ]
   .map((origin) => origin.trim().replace(/\/$/, ''))

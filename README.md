@@ -88,6 +88,19 @@ npm run dev
 
 Default frontend URL: `http://localhost:5173`
 
+For production, configure the data source through deployment environment variables instead of changing source files:
+
+```env
+# Frontend deployment (Vercel)
+VITE_API_URL=https://your-api.onrender.com/api
+
+# Backend deployment (Render)
+MONGO_URI=mongodb+srv://user:password@cluster.example/trimurya_crm
+CLIENT_URL=https://your-frontend.example
+```
+
+After changing `VITE_API_URL`, redeploy the frontend because Vite reads it at build time. After changing `MONGO_URI` or `CLIENT_URL`, restart/redeploy the backend. The Atlas cluster and database in `MONGO_URI` must match the database being inspected in Atlas Data Explorer.
+
 ## API Modules
 
 - `POST /api/auth/login`

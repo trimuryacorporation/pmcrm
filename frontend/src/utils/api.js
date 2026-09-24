@@ -1,5 +1,6 @@
 const isLocalDevelopment = typeof window === 'undefined' || ['localhost', '127.0.0.1'].includes(window.location.hostname);
-const API_URL = isLocalDevelopment ? (import.meta.env.VITE_API_URL || 'http://localhost:5000/api') : '/api';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/$/, '');
+const API_URL = configuredApiUrl || (isLocalDevelopment ? 'http://localhost:5000/api' : '/api');
 export const SERVER_URL = API_URL.replace(/\/api\/?$/, '');
 
 export async function api(path, options = {}) {
@@ -65,5 +66,6 @@ export const endpoints = {
   validateInvite: (token) => api(`/auth/invite/${encodeURIComponent(token)}`),
   setPassword: (token, password) => api('/auth/set-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
   inviteEmployee: (id) => api(`/employees/${id}/invite`, { method: 'POST' }),
-  report: (query) => api(`/reports?${new URLSearchParams(query)}`)
+  report: (query) => api(`/reports?${new URLSearchParams(query)}`),
+  downloadReport: (query) => download(`/reports?${new URLSearchParams({ ...query, format: 'csv' })}`, `${query.type}-report.csv`)
 };

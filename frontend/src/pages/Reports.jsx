@@ -14,17 +14,7 @@ export default function Reports() {
   }
 
   async function downloadCsv() {
-    const params = new URLSearchParams({ ...query, format: 'csv' });
-    const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/reports?${params}`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('trimurya_token')}` }
-    });
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${query.type}-report.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    await endpoints.downloadReport(query);
   }
 
   return (
