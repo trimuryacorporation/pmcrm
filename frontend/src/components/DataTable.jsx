@@ -17,7 +17,10 @@ function renderValue(row, key) {
       </div>
     );
   }
-  if (Array.isArray(value)) return value.length;
+  if (Array.isArray(value)) {
+    if (value.every((item) => typeof item === 'string')) return value.join(', ') || '-';
+    return value.length;
+  }
   if (value && typeof value === 'object') return value.name || value.fullName || value.agencyName || '-';
   return value ?? '-';
 }

@@ -47,7 +47,7 @@ export default function DetailPage({ module }) {
                 <div key={key} className="rounded-lg bg-slate-50 p-3">
                   <dt className="text-xs font-semibold uppercase text-slate-500">{key.replace(/([A-Z])/g, ' $1')}</dt>
                   <dd className="mt-1 break-words text-sm font-medium text-slate-800">
-                    {key.toLowerCase().includes('status') || key === 'priority' ? <StatusBadge value={value} /> : Array.isArray(value) ? `${value.length} linked records` : typeof value === 'object' && value ? value.name || value.fullName || value.agencyName || JSON.stringify(value) : String(value ?? '-')}
+                    {key.toLowerCase().includes('status') || key === 'priority' ? <StatusBadge value={value} /> : Array.isArray(value) ? (value.every((entry) => typeof entry === 'string') ? value.join(', ') || '-' : `${value.length} linked records`) : typeof value === 'object' && value ? value.name || value.fullName || value.agencyName || JSON.stringify(value) : String(value ?? '-')}
                   </dd>
                 </div>
               ))}

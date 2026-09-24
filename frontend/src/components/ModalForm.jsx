@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import SearchableSelect from './SearchableSelect.jsx';
 import SelectField from './SelectField.jsx';
+import MultiSearchableSelect from './MultiSearchableSelect.jsx';
 
 export default function ModalForm({ title, fields, initial, onClose, onSubmit, requiredFields }) {
   const titleId = useId();
@@ -17,6 +18,7 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
 
   function fieldValue(name, type) {
     const value = form[name];
+    if (type === 'multicombobox') return Array.isArray(value) ? value : value ? [value] : [];
     if (value && typeof value === 'object') return value._id || '';
     if (type === 'date' && value) return String(value).slice(0, 10);
     return value ?? '';
@@ -61,6 +63,8 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
               </span>
               {type === 'combobox' ? (
                 <SearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Type to search ${label}`} noResultsText={`No ${label.toLowerCase()} found`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
+              ) : type === 'multicombobox' ? (
+                <MultiSearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Search and select ${label.toLowerCase()}`} noResultsText={`No ${label.toLowerCase()} found`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'select' ? (
                 <SelectField value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Select ${label}`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'file' ? (
