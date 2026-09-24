@@ -84,7 +84,8 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
     return {};
   }
 }), [
-  body('fullName').notEmpty()
+  body('fullName').notEmpty(),
+  body('mobile').notEmpty().withMessage('Mobile number is required')
 ], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: peopleManagers });
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
   populate: 'assignedProjects ownerEmployee',

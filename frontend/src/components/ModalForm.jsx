@@ -1,5 +1,6 @@
 import { X } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import SearchableSelect from './SearchableSelect.jsx';
 
 export default function ModalForm({ title, fields, initial, onClose, onSubmit, requiredFields }) {
   const [form, setForm] = useState({});
@@ -16,6 +17,10 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
     if (value && typeof value === 'object') return value._id || '';
     if (type === 'date' && value) return String(value).slice(0, 10);
     return value ?? '';
+  }
+
+  function fieldOptions(options) {
+    return typeof options === 'function' ? options() : options || [];
   }
 
   function submit(event) {
@@ -43,10 +48,12 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
           {fields.map(([name, label, type = 'text', options]) => (
             <label key={name} className={['textarea', 'file'].includes(type) ? 'md:col-span-2' : ''}>
               <span className="mb-1 block text-sm font-semibold text-slate-700">{label}</span>
-              {type === 'select' ? (
+              {type === 'combobox' ? (
+                <SearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Type to search ${label}`} onChange={(value) => setValue(name, value)} />
+              ) : type === 'select' ? (
                 <select className="input" value={fieldValue(name, type)} onChange={(event) => setValue(name, event.target.value)}>
                   <option value="">Select {label}</option>
-                  {(options || []).map((option) => (
+                  {fieldOptions(options).map((option) => (
                     <option key={typeof option === 'object' ? option.value : option} value={typeof option === 'object' ? option.value : option}>
                       {typeof option === 'object' ? option.label : option}
                     </option>

@@ -96,7 +96,7 @@ export default function ModulePage({ module }) {
         Manage {config.title.toLowerCase()} with validation, responsive tables, profile pages, and role-protected API access.
       </PageHeader>
       {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={config.columns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && module === 'employees' ? invite : undefined} invitingId={invitingId} />}
-      {editing && <ModalForm title={`${editing._id ? 'Edit' : 'Add'} ${config.singular}`} fields={config.fields} initial={editing} onClose={() => setEditing(null)} onSubmit={save} />}
+      {editing && <ModalForm title={`${editing._id ? 'Edit' : 'Add'} ${config.singular}`} fields={config.fields} initial={editing} requiredFields={config.requiredFields} onClose={() => setEditing(null)} onSubmit={save} />}
     </>
   );
 }

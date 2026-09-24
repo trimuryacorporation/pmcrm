@@ -1,4 +1,5 @@
 import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users, WalletCards } from 'lucide-react';
+import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -44,15 +45,16 @@ export const moduleConfig = {
     title: 'Candidates',
     singular: 'Candidate',
     endpoint: 'candidates',
+    requiredFields: ['fullName', 'mobile'],
     columns: ['fullName', 'email', 'mobile', 'vendor', 'ownerEmployee', 'language', 'status', 'completedProjectCount'],
     fields: [
       ['fullName', 'Full Name'],
       ['mobile', 'Mobile Number'],
       ['email', 'Email', 'email'],
       ['location', 'Location'],
-      ['language', 'Language'],
-      ['experience', 'Experience'],
-      ['availabilityStatus', 'Availability'],
+      ['language', 'Language', 'combobox', LANGUAGE_OPTIONS],
+      ['experience', 'Experience', 'select', EXPERIENCE_OPTIONS],
+      ['availabilityStatus', 'Availability', 'select', availabilityOptions],
       ['candidateType', 'Candidate Type', 'select', ['Individual', 'Team Member']],
       ['status', 'Status', 'select', ['New', 'Contacted', 'Selected', 'Rejected', 'Active', 'Completed']],
       ['notes', 'Notes', 'textarea']
@@ -88,11 +90,11 @@ export const moduleConfig = {
       ['email', 'Email', 'email'],
       ['phone', 'Phone'],
       ['location', 'Location'],
-      ['language', 'Language'],
+      ['language', 'Language', 'combobox', LANGUAGE_OPTIONS],
       ['skillCategory', 'Skill Category'],
-      ['experience', 'Experience'],
+      ['experience', 'Experience', 'select', EXPERIENCE_OPTIONS],
       ['rate', 'Rate', 'number'],
-      ['availability', 'Availability'],
+      ['availability', 'Availability', 'select', availabilityOptions],
       ['paymentDetails', 'Payment Details'],
       ['status', 'Status', 'select', ['Active', 'Inactive', 'Blocked']]
     ]
