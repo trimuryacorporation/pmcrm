@@ -11,6 +11,11 @@ const fieldsByType = {
 };
 
 const modelByType = { candidate: Candidate, vendor: Vendor, freelancer: Freelancer };
+const requiredFieldsByType = {
+  candidate: ['fullName', 'email', 'mobile', 'location', 'language', 'experience', 'availabilityStatus', 'candidateType'],
+  vendor: ['agencyName', 'contactPerson', 'email', 'phone', 'address', 'location', 'languagesAvailable', 'projectTypes', 'teamCapacity', 'dailyProductionCapacity', 'rate'],
+  freelancer: ['name', 'email', 'phone', 'location', 'language', 'projectTypes', 'experience', 'availability']
+};
 
 export const onboardingRules = [
   body('type').isIn(types).withMessage('Choose Candidate, Vendor or Freelancer'),
@@ -20,7 +25,20 @@ export const onboardingRules = [
   body('agencyName').if(body('type').equals('vendor')).trim().notEmpty().withMessage('Agency name is required'),
   body('contactPerson').if(body('type').equals('vendor')).trim().notEmpty().withMessage('Contact person is required'),
   body('phone').if(body('type').isIn(['vendor', 'freelancer'])).trim().notEmpty().withMessage('Phone number is required'),
-  body('name').if(body('type').equals('freelancer')).trim().notEmpty().withMessage('Name is required')
+  body('name').if(body('type').equals('freelancer')).trim().notEmpty().withMessage('Name is required'),
+  body().custom((_, { req }) => {
+    const missing = (requiredFieldsByType[req.body.type] || []).find((field) => {
+      const value = req.body[field];
+      return value === undefined || value === null || value === '' || (Array.isArray(value) && !value.length);
+    });
+    if (missing) throw new Error(`Complete all required fields before submitting (${missing} is missing)`);
+    if (['vendor', 'freelancer'].includes(req.body.type)) {
+      const languages = req.body.type === 'vendor' ? req.body.languagesAvailable : req.body.language;
+      const counts = Array.isArray(req.body.languageTeamCounts) ? req.body.languageTeamCounts : [];
+      if (counts.length !== languages.length || counts.some((item) => !languages.includes(item.language) || !Number.isFinite(Number(item.teamCount)) || Number(item.teamCount) < 0)) throw new Error('Enter a valid team count for every selected language');
+    }
+    return true;
+  })
 ];
 
 function allowedData(type, bodyData) {

@@ -10,12 +10,12 @@ import useReferenceOptions from '../hooks/useReferenceOptions.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
 const allocationFields = (references) => [
-  ['project', 'Project', 'select', references.projects],
-  ['personType', 'Person Type', 'select', ['Employee', 'Vendor', 'Freelancer', 'Candidate']],
-  ['employee', 'Employee', 'select', references.employees],
-  ['vendor', 'Vendor', 'select', references.vendors],
-  ['freelancer', 'Freelancer', 'select', references.freelancers],
-  ['candidate', 'Candidate', 'select', references.candidates],
+  ['project', 'Project', 'multicombobox', references.projects],
+  ['personType', 'Person Type', 'multicombobox', ['Employee', 'Vendor', 'Freelancer', 'Candidate']],
+  ['employee', 'Employee', 'multicombobox', references.employees],
+  ['vendor', 'Vendor', 'multicombobox', references.vendors],
+  ['freelancer', 'Freelancer', 'multicombobox', references.freelancers],
+  ['candidate', 'Candidate', 'multicombobox', references.candidates],
   ['role', 'Role', 'select', ['Project Manager', 'Team Lead', 'Recruiter', 'Annotator', 'Transcriber', 'Reviewer', 'Vendor Partner']],
   ['workStatus', 'Work Status', 'select', ['Assigned', 'In Progress', 'Review', 'Completed', 'Paused']],
   ['completionPercentage', 'Completion %', 'number']
@@ -39,14 +39,41 @@ export default function Allocation() {
 
   async function save(payload) {
     try {
-      const selectedPerson = payload[payload.personType?.toLowerCase()];
-      if (!selectedPerson) {
-        toast.error(`Select a ${payload.personType || 'person'} for this allocation`);
+      const projects = Array.isArray(payload.project) ? payload.project : [payload.project].filter(Boolean);
+      const personTypes = Array.isArray(payload.personType) ? payload.personType : [payload.personType].filter(Boolean);
+      const people = personTypes.flatMap((personType) => {
+        const field = personType.toLowerCase();
+        const ids = Array.isArray(payload[field]) ? payload[field] : [payload[field]].filter(Boolean);
+        return ids.map((id) => ({ personType, field, id }));
+      });
+      if (!projects.length) {
+        toast.error('Select at least one project');
         return;
       }
-      if (payload._id) await endpoints.update('allocations', payload._id, payload);
-      else await endpoints.create('allocations', payload);
-      toast.success('Allocation saved');
+      if (!personTypes.length) {
+        toast.error('Select at least one person type');
+        return;
+      }
+      const missingType = personTypes.find((personType) => !people.some((person) => person.personType === personType));
+      if (missingType) {
+        toast.error(`Select at least one ${missingType.toLowerCase()} for this allocation`);
+        return;
+      }
+      const allocations = projects.flatMap((project) => people.map(({ personType, field, id }) => ({
+        project,
+        personType,
+        [field]: id,
+        role: payload.role,
+        workStatus: payload.workStatus,
+        completionPercentage: payload.completionPercentage
+      })));
+      if (payload._id) {
+        await endpoints.update('allocations', payload._id, allocations[0]);
+        await Promise.all(allocations.slice(1).map((allocation) => endpoints.create('allocations', allocation)));
+      } else {
+        await Promise.all(allocations.map((allocation) => endpoints.create('allocations', allocation)));
+      }
+      toast.success(`${allocations.length} allocation${allocations.length > 1 ? 's' : ''} saved`);
       setEditing(null);
       load();
     } catch (error) {

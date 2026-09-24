@@ -8,6 +8,7 @@ import { heartbeat, listActivity, listDeliveries, listUsers, updateLocation } fr
 import { getStorageSettings, testStorageSettings, updateStorageSettings } from '../controllers/settingsController.js';
 import { getCommunicationSettings, testEmail, testWhatsApp, updateCommunicationSettings } from '../controllers/communicationSettingsController.js';
 import { protect } from '../middleware/auth.js';
+import { globalSearch } from '../controllers/searchController.js';
 import { authorize } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import {
@@ -26,6 +27,7 @@ import {
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.get('/search', protect, globalSearch);
 router.use('/administrators', adminRoutes);
 router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee'), dashboard);
 router.use('/projects', projectRoutes);

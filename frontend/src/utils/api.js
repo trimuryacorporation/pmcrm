@@ -45,6 +45,7 @@ async function download(path, fileName) {
 }
 
 export const endpoints = {
+  globalSearch: (query) => api(`/search?q=${encodeURIComponent(query)}`),
   dashboard: () => api('/dashboard'),
   updateProfile: (body) => api('/auth/profile', { method: 'PUT', body: JSON.stringify(body) }),
   administrators: () => api('/administrators'),
