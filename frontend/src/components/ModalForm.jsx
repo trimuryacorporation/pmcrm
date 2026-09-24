@@ -27,6 +27,7 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
 
   function fieldValue(name, type) {
     const value = form[name];
+    if (type === 'textarea' && Array.isArray(value)) return value.join('\n');
     if (type === 'multicombobox') {
       const values = Array.isArray(value) ? value : value ? [value] : [];
       return values.map((item) => (item && typeof item === 'object' ? item._id || item.id : item));

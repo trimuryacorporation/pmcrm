@@ -13,6 +13,7 @@ import { createAllocation } from '../controllers/allocationController.js';
 import { notifyProjectCreated } from '../services/projectNotificationService.js';
 import { inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 import { ensureUniquePersonContact } from '../services/personContactService.js';
+import { applicationRules, getMyProjectApplication, listProjectApplications, submitProjectApplication } from '../controllers/projectApplicationController.js';
 
 const adminRoles = ['super_admin', 'admin'];
 const employeeManagers = [...adminRoles, 'employee'];
@@ -83,6 +84,14 @@ async function peopleDataWithUniqueContact(req, body, type, ownership) {
   return data;
 }
 
+function projectData(body) {
+  const data = { ...body };
+  if (typeof data.applicationQuestions === 'string') {
+    data.applicationQuestions = data.applicationQuestions.split('\n').map((question) => question.trim()).filter(Boolean);
+  }
+  return data;
+}
+
 function passwordSetupStatus(account) {
   if (!account) return 'Not set';
   if (account.passwordSetAt) return 'Password set';
@@ -127,12 +136,17 @@ export const projectRoutes = routerFor(
     searchFieldsForUser: (user) => adminRoles.includes(user.role) ? ['name', 'code', 'clientName'] : ['name', 'code'],
     transformRead: hideAdminOnlyFields(['clientName', 'clientRate']),
     afterCreate: notifyProjectCreated,
+    prepareCreate: (req, body) => projectData(body),
+    prepareUpdate: (req, body) => projectData(body),
     // Projects created by the CRM team are visible to every permitted project user.
     // Sensitive client fields are removed by transformRead for non-admin users.
     userScope: () => ({})
   }),
   [body('name').notEmpty(), body('code').notEmpty(), body('clientName').notEmpty()]
 );
+projectRoutes.post('/:id/applications', authorize('employee', 'vendor', 'freelancer'), applicationRules, validate, submitProjectApplication);
+projectRoutes.get('/:id/applications/mine', authorize('employee', 'vendor', 'freelancer'), getMyProjectApplication);
+projectRoutes.get('/:id/applications', authorize(...adminRoles), listProjectApplications);
 
 export const candidateRoutes = routerFor(createCrudController(Candidate, {
   populate: 'assignedProject vendor ownerEmployee',

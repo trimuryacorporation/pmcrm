@@ -83,6 +83,9 @@ export const endpoints = {
   onboard: (body) => api('/auth/onboard', { method: 'POST', body: JSON.stringify(body) }),
   inviteEmployee: (id) => api(`/employees/${id}/invite`, { method: 'POST' }),
   invitePerson: (resource, id) => api(`/${resource}/${id}/invite`, { method: 'POST' }),
+  applyToProject: (projectId, answers) => api(`/projects/${projectId}/applications`, { method: 'POST', body: JSON.stringify({ answers }) }),
+  myProjectApplication: (projectId) => api(`/projects/${projectId}/applications/mine`),
+  projectApplications: (projectId) => api(`/projects/${projectId}/applications`),
   report: (query) => api(`/reports?${new URLSearchParams(query)}`),
   downloadReport: (query) => download(`/reports?${new URLSearchParams({ ...query, format: 'csv' })}`, `${query.type}-report.csv`)
 };

@@ -1,5 +1,5 @@
 import { Eye, Mail, MessageCircle, Pencil, Trash2 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import StatusBadge from './StatusBadge.jsx';
 
 function renderValue(row, key) {
@@ -37,6 +37,7 @@ function renderValue(row, key) {
 }
 
 export default function DataTable({ rows, columns, basePath, onEdit, onDelete, onInvite, invitingId, onWhatsApp, empty = 'No records found.' }) {
+  const navigate = useNavigate();
   if (!rows?.length) {
     return <div className="card grid min-h-64 place-items-center p-8 text-center text-slate-500">{empty}</div>;
   }
@@ -58,7 +59,12 @@ export default function DataTable({ rows, columns, basePath, onEdit, onDelete, o
           <tbody className="divide-y divide-slate-100 bg-white">
             {rows.map((row) => {
               const canManageRow = row._canManage !== false;
-              return <tr key={row._id} className="hover:bg-slate-50">
+              const viewRow = () => navigate(`${basePath}/${row._id}`);
+              const stop = (action) => (event) => {
+                event.stopPropagation();
+                action();
+              };
+              return <tr key={row._id} tabIndex={0} role="link" onClick={viewRow} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); viewRow(); } }} className="cursor-pointer hover:bg-indigo-50/40 focus:outline-none focus-visible:bg-indigo-50">
                 {columns.map((col) => (
                   <td key={col} className="whitespace-nowrap px-4 py-3 text-slate-700">
                     {renderValue(row, col)}
@@ -66,19 +72,19 @@ export default function DataTable({ rows, columns, basePath, onEdit, onDelete, o
                 ))}
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
-                    <Link to={`${basePath}/${row._id}`} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="View">
+                    <Link to={`${basePath}/${row._id}`} onClick={(event) => event.stopPropagation()} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="View">
                       <Eye className="h-4 w-4" />
                     </Link>
-                    {onInvite && <button disabled={invitingId === row._id} onClick={() => onInvite(row)} className="rounded-lg border border-slate-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-50" title="Send invite email">
+                    {onInvite && <button disabled={invitingId === row._id} onClick={stop(() => onInvite(row))} className="rounded-lg border border-slate-200 p-2 text-indigo-600 hover:bg-indigo-50 disabled:cursor-wait disabled:opacity-50" title="Send invite email">
                       <Mail className={`h-4 w-4 ${invitingId === row._id ? 'animate-pulse' : ''}`} />
                     </button>}
-                    {onWhatsApp && <button onClick={() => onWhatsApp(row)} className="rounded-lg border border-slate-200 p-2 text-emerald-600 hover:bg-emerald-50" title="Send WhatsApp login message">
+                    {onWhatsApp && <button onClick={stop(() => onWhatsApp(row))} className="rounded-lg border border-slate-200 p-2 text-emerald-600 hover:bg-emerald-50" title="Send WhatsApp login message">
                       <MessageCircle className="h-4 w-4" />
                     </button>}
-                    {onEdit && canManageRow && <button onClick={() => onEdit(row)} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="Edit">
+                    {onEdit && canManageRow && <button onClick={stop(() => onEdit(row))} className="rounded-lg border border-slate-200 p-2 text-slate-600 hover:bg-white" title="Edit">
                       <Pencil className="h-4 w-4" />
                     </button>}
-                    {onDelete && canManageRow && <button onClick={() => onDelete(row)} className="rounded-lg border border-slate-200 p-2 text-rose-600 hover:bg-rose-50" title="Delete">
+                    {onDelete && canManageRow && <button onClick={stop(() => onDelete(row))} className="rounded-lg border border-slate-200 p-2 text-rose-600 hover:bg-rose-50" title="Delete">
                       <Trash2 className="h-4 w-4" />
                     </button>}
                   </div>

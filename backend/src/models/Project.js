@@ -18,6 +18,7 @@ const projectSchema = new mongoose.Schema(
     projectType: [{ type: String, trim: true }],
     description: String,
     requiredLanguage: [String],
+    applicationQuestions: [{ type: String, trim: true }],
     startDate: Date,
     endDate: Date,
     budget: { type: Number, default: 0 },

@@ -1,34 +1,67 @@
-import { ArrowLeft, Download, FileText } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, FileText, Send, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Loading from '../components/Loading.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
+import ProjectApplicationModal from '../components/ProjectApplicationModal.jsx';
+import ProjectApplicantsModal from '../components/ProjectApplicantsModal.jsx';
 import { moduleConfig } from '../data/modules.js';
 import { endpoints, SERVER_URL } from '../utils/api.js';
+import { useAuth } from '../context/AuthContext.jsx';
 
 export default function DetailPage({ module }) {
   const { id } = useParams();
   const config = moduleConfig[module];
   const [item, setItem] = useState(null);
+  const [applying, setApplying] = useState(false);
+  const [hasApplied, setHasApplied] = useState(false);
+  const [applications, setApplications] = useState(null);
+  const [showApplicants, setShowApplicants] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     endpoints.get(config.endpoint, id).then(setItem);
   }, [id, config.endpoint]);
 
+  useEffect(() => {
+    const eligible = module === 'projects' && ['employee', 'vendor', 'freelancer'].includes(user?.role);
+    if (!eligible) return;
+    endpoints.myProjectApplication(id)
+      .then((response) => setHasApplied(response.applied))
+      .catch(() => setHasApplied(false));
+  }, [id, module, user?.role]);
+
+  useEffect(() => {
+    if (module !== 'projects' || !['super_admin', 'admin'].includes(user?.role)) return;
+    endpoints.projectApplications(id)
+      .then((response) => setApplications(response.applications || []))
+      .catch(() => setApplications([]));
+  }, [id, module, user?.role]);
+
   if (!item) return <Loading />;
   const title = item.name || item.fullName || item.agencyName || item.employeeId || config.singular;
+  const canApply = module === 'projects' && ['employee', 'vendor', 'freelancer'].includes(user?.role);
+  const canReviewApplications = module === 'projects' && ['super_admin', 'admin'].includes(user?.role);
 
   return (
     <>
       <PageHeader
         title={title}
         action={
-          <Link className="btn-secondary" to={`/${module}`}>
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Link>
+          <div className="flex gap-2">
+            {canReviewApplications && <button type="button" className="btn-secondary" onClick={() => setShowApplicants(true)}><Users className="h-4 w-4" />Applicants ({applications?.length || 0})</button>}
+            {canApply && (hasApplied ? (
+              <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-100 px-4 py-2.5 text-sm font-bold text-emerald-700"><CheckCircle2 className="h-4 w-4" />Applied</span>
+            ) : (
+              <button type="button" className="btn-primary" onClick={() => setApplying(true)}><Send className="h-4 w-4" />Apply</button>
+            ))}
+            <Link className="btn-secondary" to={`/${module}`}>
+              <ArrowLeft className="h-4 w-4" />
+              Back
+            </Link>
+          </div>
         }
       >
         Profile, project history, documents, performance, notes, and operational details.
@@ -102,6 +135,8 @@ export default function DetailPage({ module }) {
           </div>
         </div>
       </div>
+      {applying && <ProjectApplicationModal project={item} onClose={() => setApplying(false)} onSubmitted={() => setHasApplied(true)} />}
+      {showApplicants && <ProjectApplicantsModal applications={applications || []} onClose={() => setShowApplicants(false)} />}
     </>
   );
 }

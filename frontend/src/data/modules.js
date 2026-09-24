@@ -31,6 +31,7 @@ export const moduleConfig = {
       ['clientName', 'Client Name'],
       ['projectType', 'Project Type', 'multicombobox', PROJECT_TYPE_OPTIONS],
       ['requiredLanguage', 'Required Language', 'multicombobox', LANGUAGE_OPTIONS],
+      ['applicationQuestions', 'Additional Application Questions (one per line)', 'textarea'],
       ['budget', 'Budget', 'number'],
       ['currency', 'Currency', 'select', ['INR', 'USD']],
       ['clientRate', 'Client Rate', 'number'],
