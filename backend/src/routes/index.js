@@ -1,5 +1,6 @@
 import express from 'express';
 import authRoutes from './authRoutes.js';
+import adminRoutes from './adminRoutes.js';
 import { dashboard } from '../controllers/dashboardController.js';
 import { getReport } from '../controllers/reportController.js';
 import { downloadProjectFile, uploadFiles } from '../controllers/uploadController.js';
@@ -25,6 +26,7 @@ import {
 const router = express.Router();
 
 router.use('/auth', authRoutes);
+router.use('/administrators', adminRoutes);
 router.get('/dashboard', protect, dashboard);
 router.use('/projects', projectRoutes);
 router.use('/candidates', candidateRoutes);

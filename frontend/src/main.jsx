@@ -18,6 +18,7 @@ import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
 import Tasks from './pages/Tasks.jsx';
 import Activity from './pages/Activity.jsx';
+import Administrators from './pages/Administrators.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -47,6 +48,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/activity" element={<Activity />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
+              <Route element={<ProtectedRoute roles={['super_admin']} />}>
+                <Route path="/administrators" element={<Administrators />} />
+              </Route>
             </Route>
           </Route>
         </Routes>
