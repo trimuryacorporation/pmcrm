@@ -60,7 +60,7 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
                 {required.includes(name) && <span className="ml-1 text-rose-500" aria-hidden="true">*</span>}
               </span>
               {type === 'combobox' ? (
-                <SearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Type to search ${label}`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
+                <SearchableSelect value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Type to search ${label}`} noResultsText={`No ${label.toLowerCase()} found`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'select' ? (
                 <SelectField value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Select ${label}`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'file' ? (

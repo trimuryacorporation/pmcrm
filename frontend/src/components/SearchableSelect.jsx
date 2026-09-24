@@ -1,7 +1,7 @@
 import { Check, Search } from 'lucide-react';
 import { useEffect, useId, useMemo, useState } from 'react';
 
-export default function SearchableSelect({ value = '', options = [], placeholder, onChange, invalid = false }) {
+export default function SearchableSelect({ value = '', options = [], placeholder, noResultsText = 'No matching option found', onChange, invalid = false }) {
   const listId = useId();
   const normalizedOptions = useMemo(() => options.map((option) => (
     typeof option === 'object' ? option : { value: option, label: option }
@@ -90,7 +90,7 @@ export default function SearchableSelect({ value = '', options = [], placeholder
               {option.value === value && <Check className="h-4 w-4 shrink-0 text-indigo-600" />}
             </button>
           ))}
-          {!matches.length && <p className="px-3 py-3 text-sm text-slate-500">No language found</p>}
+          {!matches.length && <p className="px-3 py-3 text-sm text-slate-500">{noResultsText}</p>}
         </div>
       )}
     </div>

@@ -1,5 +1,10 @@
 const colors = {
   Active: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  Live: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+  'Pre-Sale': 'bg-amber-50 text-amber-700 ring-amber-200',
+  'Not Live': 'bg-slate-100 text-slate-600 ring-slate-200',
+  'On Hold': 'bg-orange-50 text-orange-700 ring-orange-200',
+  Cancelled: 'bg-rose-50 text-rose-700 ring-rose-200',
   Completed: 'bg-blue-50 text-blue-700 ring-blue-200',
   Pending: 'bg-amber-50 text-amber-700 ring-amber-200',
   Partial: 'bg-purple-50 text-purple-700 ring-purple-200',

@@ -26,7 +26,7 @@ export default function Dashboard() {
       <PageHeader title="Enterprise Dashboard">Live operational analytics from MongoDB across projects, people, workload, deadlines, and payments.</PageHeader>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Projects" value={cards.totalProjects} icon={Briefcase} />
-        <StatCard label="Active Projects" value={cards.activeProjects} icon={Activity} accent="from-emerald-500 to-teal-600" />
+        <StatCard label="Live Projects" value={cards.activeProjects} icon={Activity} accent="from-emerald-500 to-teal-600" />
         <StatCard label="Completed Projects" value={cards.completedProjects} icon={CheckCircle2} accent="from-blue-500 to-cyan-600" />
         <StatCard label="Pending Projects" value={cards.pendingProjects} icon={Clock3} accent="from-amber-500 to-orange-600" />
         <StatCard label="Candidates" value={cards.totalCandidates} icon={UserCheck} />

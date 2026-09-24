@@ -16,6 +16,79 @@ export const LANGUAGE_OPTIONS = [
   ...internationalLanguages.map((name) => ({ value: name, label: `International - ${name}` }))
 ];
 
+function projectTypes(category, names) {
+  return names.map((name) => ({ value: name, label: `${category} - ${name}` }));
+}
+
+export const PROJECT_TYPE_OPTIONS = [
+  ...projectTypes('Audio & Speech', [
+    'Speech Data Collection',
+    'Voice Recording',
+    'Audio Transcription',
+    'Audio Classification',
+    'Automatic Speech Recognition (ASR)',
+    'Text-to-Speech (TTS) Data',
+    'Speaker Diarization',
+    'Wake Word Collection',
+    'Call Center Audio Analysis',
+    'Pronunciation Evaluation'
+  ]),
+  ...projectTypes('Language & NLP', [
+    'Translation and Localization',
+    'Text Data Collection',
+    'Text Annotation',
+    'Text Classification',
+    'Sentiment Analysis',
+    'Named Entity Recognition (NER)',
+    'Intent Classification',
+    'Content Moderation',
+    'Search Relevance Evaluation',
+    'OCR and Data Extraction',
+    'Document AI Processing'
+  ]),
+  ...projectTypes('Generative AI', [
+    'LLM Training Data',
+    'Prompt and Response Evaluation',
+    'RLHF and Human Feedback',
+    'AI Response Ranking',
+    'Fact Checking',
+    'AI Safety and Red Teaming',
+    'Chatbot Evaluation',
+    'Code Data Annotation'
+  ]),
+  ...projectTypes('Image', [
+    'Image Data Collection',
+    'Image Classification',
+    'Object Detection - Bounding Box',
+    'Polygon Annotation',
+    'Semantic Segmentation',
+    'Instance Segmentation',
+    'Keypoint and Landmark Annotation',
+    'OCR Image Annotation',
+    'Face Recognition Data',
+    'Medical Image Annotation'
+  ]),
+  ...projectTypes('Video & Spatial', [
+    'Video Data Collection',
+    'Video Classification',
+    'Video Annotation',
+    'Object Tracking',
+    'Action Recognition',
+    'LiDAR and Point Cloud Annotation',
+    'Autonomous Vehicle Data Annotation',
+    'Geospatial Data Annotation'
+  ]),
+  ...projectTypes('Data Operations', [
+    'Tabular Data Classification',
+    'Data Validation',
+    'Data Enrichment',
+    'Web Research and Data Collection',
+    'Product Catalog Enrichment',
+    'Synthetic Data Generation',
+    'Model Evaluation and Quality Assurance'
+  ])
+];
+
 export const EXPERIENCE_OPTIONS = [
   'Fresher',
   'Less than 1 year',

@@ -18,6 +18,15 @@ const employeeManagers = [...adminRoles, 'employee'];
 const peopleManagers = [...adminRoles, 'vendor', 'employee'];
 const hiddenContact = '******';
 
+function hideAdminOnlyFields(fields) {
+  return (item, req) => {
+    if (adminRoles.includes(req.user.role)) return item;
+    const data = typeof item.toObject === 'function' ? item.toObject() : { ...item };
+    fields.forEach((field) => { delete data[field]; });
+    return data;
+  };
+}
+
 function employeeOwnedScope(user) {
   return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
 }
@@ -81,6 +90,8 @@ export const projectRoutes = routerFor(
   createCrudController(Project, {
     populate: 'projectManager employees vendors freelancers candidates',
     searchFields: ['name', 'code', 'clientName'],
+    searchFieldsForUser: (user) => adminRoles.includes(user.role) ? ['name', 'code', 'clientName'] : ['name', 'code'],
+    transformRead: hideAdminOnlyFields(['clientName', 'clientRate']),
     afterCreate: notifyProjectCreated,
     userScope: (user) => {
       if (user.role === 'employee') return { employees: user.linkedEmployee };

@@ -34,9 +34,9 @@ export async function dashboard(req, res, next) {
       tasks
     ] = await Promise.all([
       Project.countDocuments(projectFilter),
-      Project.countDocuments({ ...projectFilter, status: 'Active' }),
+      Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }),
       Project.countDocuments({ ...projectFilter, status: 'Completed' }),
-      Project.countDocuments({ ...projectFilter, status: { $in: ['Draft', 'On Hold'] } }),
+      Project.countDocuments({ ...projectFilter, status: { $in: ['Pre-Sale', 'Not Live', 'On Hold', 'Draft'] } }),
       isAdmin ? Candidate.countDocuments() : 0,
       isAdmin ? Vendor.countDocuments() : req.user.role === 'vendor' ? 1 : 0,
       isAdmin ? Freelancer.countDocuments() : req.user.role === 'freelancer' ? 1 : 0,

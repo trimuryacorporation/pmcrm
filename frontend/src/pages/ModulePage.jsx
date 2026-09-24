@@ -17,7 +17,10 @@ export default function ModulePage({ module }) {
   const { user } = useAuth();
   const vendorManagedModules = ['candidates', 'freelancers', 'employees'];
   const employeeManagedModules = ['candidates', 'vendors', 'freelancers'];
-  const canManage = ['super_admin', 'admin'].includes(user?.role)
+  const isAdmin = ['super_admin', 'admin'].includes(user?.role);
+  const visibleColumns = isAdmin ? config.columns : config.columns.filter((column) => !config.adminOnlyColumns?.includes(column));
+  const visibleFields = isAdmin ? config.fields : config.fields.filter(([name]) => !config.adminOnlyFields?.includes(name));
+  const canManage = isAdmin
     || (user?.role === 'vendor' && vendorManagedModules.includes(module))
     || (user?.role === 'employee' && employeeManagedModules.includes(module));
 
@@ -95,8 +98,8 @@ export default function ModulePage({ module }) {
       >
         Manage {config.title.toLowerCase()} with validation, responsive tables, profile pages, and role-protected API access.
       </PageHeader>
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={config.columns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && module === 'employees' ? invite : undefined} invitingId={invitingId} />}
-      {editing && <ModalForm title={`${editing._id ? 'Edit' : 'Add'} ${config.singular}`} fields={config.fields} initial={editing} requiredFields={config.requiredFields} onClose={() => setEditing(null)} onSubmit={save} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && module === 'employees' ? invite : undefined} invitingId={invitingId} />}
+      {editing && <ModalForm title={`${editing._id ? 'Edit' : 'Add'} ${config.singular}`} fields={visibleFields} initial={editing} requiredFields={config.requiredFields} onClose={() => setEditing(null)} onSubmit={save} />}
     </>
   );
 }

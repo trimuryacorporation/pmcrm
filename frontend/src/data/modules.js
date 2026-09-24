@@ -1,5 +1,5 @@
 import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users, WalletCards } from 'lucide-react';
-import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS } from './formOptions.js';
+import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -22,19 +22,23 @@ export const moduleConfig = {
     title: 'Projects',
     singular: 'Project',
     endpoint: 'projects',
-    columns: ['name', 'code', 'clientName', 'status', 'priority', 'progress'],
+    adminOnlyColumns: ['clientName', 'clientRate'],
+    adminOnlyFields: ['clientName', 'clientRate'],
+    columns: ['name', 'code', 'clientName', 'projectType', 'requiredLanguage', 'clientRate', 'vendorRate', 'freelancerRate', 'status', 'priority', 'progress'],
     fields: [
       ['name', 'Project Name'],
       ['code', 'Project Code'],
       ['clientName', 'Client Name'],
-      ['projectType', 'Project Type'],
-      ['requiredLanguage', 'Required Language'],
+      ['projectType', 'Project Type', 'combobox', PROJECT_TYPE_OPTIONS],
+      ['requiredLanguage', 'Required Language', 'combobox', LANGUAGE_OPTIONS],
       ['budget', 'Budget', 'number'],
-      ['paymentRate', 'Payment Rate', 'number'],
+      ['clientRate', 'Client Rate', 'number'],
+      ['vendorRate', 'Vendor Rate', 'number'],
+      ['freelancerRate', 'Freelancer Rate', 'number'],
       ['requiredCandidateCount', 'Required Candidate Count', 'number'],
       ['requiredVendorCount', 'Required Vendor Count', 'number'],
       ['progress', 'Progress %', 'number'],
-      ['status', 'Status', 'select', ['Draft', 'Active', 'On Hold', 'Completed', 'Cancelled']],
+      ['status', 'Status', 'select', ['Pre-Sale', 'Live', 'Not Live', 'On Hold', 'Completed', 'Cancelled']],
       ['priority', 'Priority', 'select', ['Low', 'Medium', 'High', 'Urgent']],
       ['documentFiles', 'Project Documents', 'file', '.pdf,.doc,.docx'],
       ['description', 'Description', 'textarea'],

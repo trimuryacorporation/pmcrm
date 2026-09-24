@@ -1,5 +1,9 @@
 import { writeAudit } from '../utils/audit.js';
 
+function escapeRegex(value) {
+  return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function createCrudController(Model, options = {}) {
   const populate = options.populate || '';
   const searchFields = options.searchFields || [];
@@ -21,8 +25,12 @@ export function createCrudController(Model, options = {}) {
       try {
         const { q, status, page = 1, limit = 50 } = req.query;
         const filter = {};
+        const allowedSearchFields = options.searchFieldsForUser ? options.searchFieldsForUser(req.user) : searchFields;
         if (status) filter.status = status;
-        if (q && searchFields.length) filter.$text = { $search: q };
+        if (q && allowedSearchFields.length) {
+          const search = { $regex: escapeRegex(q.trim()), $options: 'i' };
+          filter.$or = allowedSearchFields.map((field) => ({ [field]: search }));
+        }
 
         const scoped = scopeQuery(req, filter);
         const skip = (Number(page) - 1) * Number(limit);
