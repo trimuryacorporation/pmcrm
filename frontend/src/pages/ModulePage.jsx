@@ -16,7 +16,10 @@ export default function ModulePage({ module }) {
   const [invitingId, setInvitingId] = useState('');
   const { user } = useAuth();
   const vendorManagedModules = ['candidates', 'freelancers', 'employees'];
-  const canManage = ['super_admin', 'admin'].includes(user?.role) || (user?.role === 'vendor' && vendorManagedModules.includes(module));
+  const employeeManagedModules = ['vendors', 'freelancers'];
+  const canManage = ['super_admin', 'admin'].includes(user?.role)
+    || (user?.role === 'vendor' && vendorManagedModules.includes(module))
+    || (user?.role === 'employee' && employeeManagedModules.includes(module));
 
   async function load() {
     const data = await endpoints.list(config.endpoint);

@@ -4,8 +4,8 @@ export const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Projects', path: '/projects', icon: Briefcase },
   { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee', 'vendor'] },
-  { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'vendor'] },
-  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'vendor', 'freelancer'] },
+  { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'employee', 'vendor'] },
+  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
   { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'vendor', 'employee'] },
   { label: 'Allocation', path: '/allocation', icon: ClipboardList },
   { label: 'Tasks', path: '/tasks', icon: ClipboardList },
@@ -62,7 +62,7 @@ export const moduleConfig = {
     title: 'Vendors',
     singular: 'Vendor',
     endpoint: 'vendors',
-    columns: ['agencyName', 'contactPerson', 'email', 'location', 'teamCapacity', 'status'],
+    columns: ['agencyName', 'contactPerson', 'email', 'ownerEmployee', 'location', 'teamCapacity', 'status'],
     fields: [
       ['agencyName', 'Vendor / Agency Name'],
       ['contactPerson', 'Contact Person'],
@@ -82,7 +82,7 @@ export const moduleConfig = {
     title: 'Freelancers',
     singular: 'Freelancer',
     endpoint: 'freelancers',
-    columns: ['name', 'email', 'phone', 'vendor', 'language', 'skillCategory', 'status'],
+    columns: ['name', 'email', 'phone', 'vendor', 'ownerEmployee', 'language', 'skillCategory', 'status'],
     fields: [
       ['name', 'Name'],
       ['email', 'Email', 'email'],

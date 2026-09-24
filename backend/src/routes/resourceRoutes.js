@@ -14,6 +14,8 @@ import { inviteEmployee } from '../services/employeeInviteService.js';
 
 const adminRoles = ['super_admin', 'admin'];
 const vendorManagers = [...adminRoles, 'vendor'];
+const employeeManagers = [...adminRoles, 'employee'];
+const peopleManagers = [...adminRoles, 'vendor', 'employee'];
 
 function vendorScope(user, fallback = {}) {
   if (user.role !== 'vendor') return fallback;
@@ -27,7 +29,23 @@ function vendorOwnedData(req, body) {
     error.statusCode = 403;
     throw error;
   }
-  return { ...body, vendor: req.user.linkedVendor };
+  const { ownerEmployee, ...data } = body;
+  return { ...data, vendor: req.user.linkedVendor };
+}
+
+function employeeOwnedData(req, body) {
+  if (req.user.role !== 'employee') return body;
+  if (!req.user.linkedEmployee) {
+    const error = new Error('Employee account is not linked to an employee profile');
+    error.statusCode = 403;
+    throw error;
+  }
+  const { vendor, ...data } = body;
+  return { ...data, ownerEmployee: req.user.linkedEmployee };
+}
+
+function peopleOwnedData(req, body) {
+  return employeeOwnedData(req, vendorOwnedData(req, body));
 }
 
 function routerFor(controller, rules = [], access = {}) {
@@ -65,25 +83,32 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
   body('fullName').notEmpty()
 ], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: vendorManagers });
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
-  populate: 'assignedProjects',
+  populate: 'assignedProjects ownerEmployee',
   searchFields: ['agencyName'],
-  userScope: (user) => (user.role === 'vendor' ? (user.linkedVendor ? { _id: user.linkedVendor } : { _id: null }) : {})
+  prepareCreate: employeeOwnedData,
+  prepareUpdate: employeeOwnedData,
+  userScope: (user) => {
+    if (user.role === 'vendor') return user.linkedVendor ? { _id: user.linkedVendor } : { _id: null };
+    if (user.role === 'employee') return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
+    return {};
+  }
 }), [
   body('agencyName').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'vendor'] });
+], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: employeeManagers });
 export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
-  populate: 'assignedProjects vendor',
+  populate: 'assignedProjects vendor ownerEmployee',
   searchFields: ['name'],
-  prepareCreate: vendorOwnedData,
-  prepareUpdate: vendorOwnedData,
+  prepareCreate: peopleOwnedData,
+  prepareUpdate: peopleOwnedData,
   userScope: (user) => {
     if (user.role === 'vendor') return vendorScope(user);
+    if (user.role === 'employee') return user.linkedEmployee ? { ownerEmployee: user.linkedEmployee } : { _id: null };
     if (user.role === 'freelancer') return user.linkedFreelancer ? { _id: user.linkedFreelancer } : { _id: null };
     return {};
   }
 }), [
   body('name').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'vendor', 'freelancer'], writeRoles: vendorManagers });
+], { readRoles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'], writeRoles: peopleManagers });
 export const employeeRoutes = routerFor(createCrudController(Employee, {
   populate: 'assignedProjects vendor',
   searchFields: ['name', 'employeeId'],
