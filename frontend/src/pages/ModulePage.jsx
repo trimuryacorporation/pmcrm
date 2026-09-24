@@ -25,6 +25,8 @@ export default function ModulePage({ module }) {
   const [exporting, setExporting] = useState(false);
   const [searchParams] = useSearchParams();
   const languageFilter = searchParams.get('language');
+  const statusFilter = searchParams.get('status');
+  const effectiveStatus = status || statusFilter || '';
   const directoryModule = ['candidates', 'vendors', 'freelancers'].includes(module);
   const pageSize = directoryModule ? 100 : 50;
   const statusOptions = config.fields.find(([name]) => name === 'status')?.[3] || [];
@@ -42,7 +44,7 @@ export default function ModulePage({ module }) {
     const data = await endpoints.list(config.endpoint, {
       ...(languageFilter ? { language: languageFilter } : {}),
       ...(search.trim() ? { q: search.trim() } : {}),
-      ...(status ? { status } : {}),
+      ...(effectiveStatus ? { status: effectiveStatus } : {}),
       page,
       limit: pageSize
     });
@@ -53,11 +55,11 @@ export default function ModulePage({ module }) {
   useEffect(() => {
     setRows(null);
     load();
-  }, [module, languageFilter, search, status, page]);
+  }, [module, languageFilter, search, effectiveStatus, page]);
 
   useEffect(() => {
     setPage(1);
-  }, [module, languageFilter, search, status]);
+  }, [module, languageFilter, search, effectiveStatus]);
 
   function csvCell(value) {
     const text = Array.isArray(value) ? value.join(', ') : value && typeof value === 'object' ? value.name || value.fullName || value.agencyName || '' : String(value ?? '');
@@ -70,7 +72,7 @@ export default function ModulePage({ module }) {
       const query = {
         ...(languageFilter ? { language: languageFilter } : {}),
         ...(search.trim() ? { q: search.trim() } : {}),
-        ...(status ? { status } : {}),
+        ...(effectiveStatus ? { status: effectiveStatus } : {}),
         limit: 100
       };
       const first = await endpoints.list(config.endpoint, { ...query, page: 1 });

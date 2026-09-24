@@ -28,7 +28,10 @@ export function createCrudController(Model, options = {}) {
         const safeLimit = Math.min(Math.max(Number(limit) || 50, 1), 100);
         const filter = {};
         const allowedSearchFields = options.searchFieldsForUser ? options.searchFieldsForUser(req.user) : searchFields;
-        if (status) filter.status = status;
+        if (status) {
+          const statuses = String(status).split(',').map((value) => value.trim()).filter(Boolean);
+          filter.status = statuses.length > 1 ? { $in: statuses } : statuses[0];
+        }
         if (language && options.languageField) filter[options.languageField] = language;
         if (q && allowedSearchFields.length) {
           const search = { $regex: escapeRegex(q.trim()), $options: 'i' };
