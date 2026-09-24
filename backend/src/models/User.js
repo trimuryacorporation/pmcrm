@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import mongoose from 'mongoose';
 
-export const ROLES = ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'];
+export const ROLES = ['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'];
 
 const userSchema = new mongoose.Schema(
   {
@@ -12,6 +12,7 @@ const userSchema = new mongoose.Schema(
     linkedEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     linkedVendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
     linkedFreelancer: { type: mongoose.Schema.Types.ObjectId, ref: 'Freelancer' },
+    linkedCandidate: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate' },
     passwordSetupToken: { type: String, select: false },
     passwordSetupExpires: { type: Date, select: false },
     passwordResetToken: { type: String, select: false },

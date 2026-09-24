@@ -52,6 +52,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/allocation" element={<Allocation />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/payments" element={<Payments />} />
+              <Route path="/payments/payment/:id" element={<DetailPage module="financePayments" />} />
+              <Route path="/payments/invoice/:id" element={<DetailPage module="financeInvoices" />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/activity" element={<Activity />} />
               <Route path="/settings" element={<Settings />} />

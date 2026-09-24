@@ -12,6 +12,8 @@ export default function AppLayout() {
   const [searchResults, setSearchResults] = useState([]);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searching, setSearching] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -39,12 +41,42 @@ export default function AppLayout() {
     return () => window.clearTimeout(timer);
   }, [searchQuery]);
 
+  async function loadNotifications() {
+    try {
+      const data = await endpoints.list('notifications', { limit: 20 });
+      setNotifications(data.items || []);
+    } catch {
+      setNotifications([]);
+    }
+  }
+
+  useEffect(() => {
+    loadNotifications();
+    const timer = window.setInterval(loadNotifications, 30000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   function chooseSearchResult(result) {
     setSearchQuery('');
     setSearchResults([]);
     setSearchOpen(false);
     navigate(result.path);
   }
+
+  async function openNotification(notification) {
+    if (!notification.isRead) {
+      try {
+        await endpoints.update('notifications', notification._id, { isRead: true });
+        setNotifications((items) => items.map((item) => item._id === notification._id ? { ...item, isRead: true } : item));
+      } catch {
+        // The notification can still be opened even if its read state cannot be saved.
+      }
+    }
+    setNotificationsOpen(false);
+    if (notification.link) navigate(notification.link);
+  }
+
+  const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
 
   const sidebar = (
     <aside className="flex h-full w-72 flex-col bg-slate-950 text-white">
@@ -105,9 +137,22 @@ export default function AppLayout() {
                 {searchResults.length ? <><p className="px-3 pb-1 pt-1 text-xs font-semibold uppercase tracking-wide text-slate-400">Search results</p>{searchResults.map((result) => <button key={`${result.type}-${result.id}`} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => chooseSearchResult(result)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left hover:bg-indigo-50"><span className="rounded-md bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-600">{result.type}</span><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-slate-800">{result.title}</span><span className="block truncate text-xs text-slate-500">{result.subtitle || 'Open record'}</span></span></button>)}</> : !searching && <p className="px-3 py-5 text-center text-sm text-slate-500">No records found for “{searchQuery}”.</p>}
               </div>}
             </div>
-            <button className="rounded-lg border border-slate-200 p-2" aria-label="Notifications">
-              <Bell className="h-5 w-5 text-slate-600" />
-            </button>
+            <div className="relative">
+              <button className="relative rounded-lg border border-slate-200 p-2 hover:bg-slate-50" onClick={() => { setNotificationsOpen((current) => !current); loadNotifications(); }} aria-label={`Notifications${unreadNotifications ? `, ${unreadNotifications} unread` : ''}`} aria-expanded={notificationsOpen}>
+                <Bell className="h-5 w-5 text-slate-600" />
+                {unreadNotifications > 0 && <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-rose-600 px-1 text-[10px] font-bold text-white">{unreadNotifications > 9 ? '9+' : unreadNotifications}</span>}
+              </button>
+              {notificationsOpen && <div className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xl">
+                <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3"><h2 className="text-sm font-bold text-slate-900">Notifications</h2><span className="text-xs text-slate-500">{unreadNotifications ? `${unreadNotifications} unread` : 'All caught up'}</span></div>
+                <div className="max-h-96 overflow-y-auto">
+                  {notifications.length ? notifications.map((notification) => <button key={notification._id} type="button" onClick={() => openNotification(notification)} className={`block w-full border-b border-slate-100 px-4 py-3 text-left last:border-0 hover:bg-indigo-50 ${notification.isRead ? 'bg-white' : 'bg-indigo-50/60'}`}>
+                    <span className="block text-sm font-semibold text-slate-800">{notification.title}</span>
+                    <span className="mt-0.5 block text-xs leading-5 text-slate-600">{notification.message || 'Open notification'}</span>
+                    <span className="mt-1 block text-[11px] text-slate-400">{notification.createdAt ? new Date(notification.createdAt).toLocaleString('en-IN') : ''}</span>
+                  </button>) : <p className="px-4 py-8 text-center text-sm text-slate-500">No notifications yet.</p>}
+                </div>
+              </div>}
+            </div>
             <button onClick={() => navigate('/profile')} className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2">
               <UserRound className="h-4 w-4 text-indigo-600" />
               <span className="hidden text-sm font-semibold sm:inline">{user?.name}</span>

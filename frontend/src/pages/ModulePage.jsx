@@ -190,7 +190,7 @@ export default function ModulePage({ module }) {
           {exporting ? 'Preparing...' : 'Download Excel'}
         </button>
       </div>}
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? setDeleting : undefined} onInvite={canManage && ['employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} onWhatsApp={canManage && ['candidates', 'vendors', 'freelancers'].includes(module) ? openWhatsApp : undefined} invitingId={invitingId} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? setDeleting : undefined} onInvite={canManage && ['candidates', 'employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} onWhatsApp={canManage && ['candidates', 'vendors', 'freelancers'].includes(module) ? openWhatsApp : undefined} invitingId={invitingId} />}
       {directoryModule && pagination.total > 0 && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">Showing {Math.min((page - 1) * pageSize + 1, pagination.total)}-{Math.min(page * pageSize, pagination.total)} of {pagination.total} records</p>
         <div className="flex items-center gap-2">

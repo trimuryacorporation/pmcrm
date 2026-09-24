@@ -41,7 +41,8 @@ export default function DetailPage({ module }) {
   }, [id, module, user?.role]);
 
   if (!item) return <Loading />;
-  const title = item.name || item.fullName || item.agencyName || item.employeeId || config.singular;
+  const title = item.name || item.fullName || item.agencyName || item.payeeName || item.invoiceNumber || item.employeeId || config.singular;
+  const listPath = config.listPath || `/${module}`;
   const canApply = module === 'projects' && ['employee', 'vendor', 'freelancer'].includes(user?.role);
   const canReviewApplications = module === 'projects' && ['super_admin', 'admin'].includes(user?.role);
 
@@ -57,7 +58,7 @@ export default function DetailPage({ module }) {
             ) : (
               <button type="button" className="btn-primary" onClick={() => setApplying(true)}><Send className="h-4 w-4" />Apply</button>
             ))}
-            <Link className="btn-secondary" to={`/${module}`}>
+            <Link className="btn-secondary" to={listPath}>
               <ArrowLeft className="h-4 w-4" />
               Back
             </Link>

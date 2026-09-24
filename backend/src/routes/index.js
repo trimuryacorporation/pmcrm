@@ -30,7 +30,7 @@ const router = express.Router();
 router.use('/auth', authRoutes);
 router.get('/search', protect, globalSearch);
 router.use('/administrators', adminRoutes);
-router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee'), dashboard);
+router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee', 'candidate'), dashboard);
 router.use('/projects', projectRoutes);
 router.use('/clients', clientRoutes);
 router.use('/candidates', candidateRoutes);

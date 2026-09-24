@@ -12,7 +12,7 @@ import { validate } from '../middleware/validate.js';
 import { createCrudController } from '../controllers/crudController.js';
 import { createAllocation } from '../controllers/allocationController.js';
 import { notifyProjectCreated } from '../services/projectNotificationService.js';
-import { inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
+import { inviteCandidate, inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 import { ensureUniquePersonContact } from '../services/personContactService.js';
 import { applicationRules, getMyProjectApplication, listProjectApplications, submitProjectApplication } from '../controllers/projectApplicationController.js';
 
@@ -162,6 +162,7 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
   transformRead: maskOtherEmployeeContacts(['email', 'mobile']),
   enrichList: enrichPeopleWithPasswordStatus('linkedCandidate'),
   readScope: (user) => {
+    if (user.role === 'candidate') return user.linkedCandidate ? { _id: user.linkedCandidate } : { _id: null };
     if (user.role === 'vendor') return vendorScope(user);
     if (user.role === 'employee') return {};
     return {};
@@ -174,7 +175,8 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
 }), [
   body('fullName').notEmpty(),
   body('mobile').notEmpty().withMessage('Mobile number is required')
-], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
+], { readRoles: ['super_admin', 'admin', 'employee', 'candidate'], writeRoles: employeeManagers });
+candidateRoutes.post('/:id/invite', authorize(...employeeManagers), invitePersonRoute(Candidate, inviteCandidate, 'Candidate'));
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
   populate: 'assignedProjects ownerEmployee',
   searchFields: ['agencyName'],

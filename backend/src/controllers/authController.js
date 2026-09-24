@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
 import User from '../models/User.js';
-import { Employee, Freelancer, Vendor } from '../models/People.js';
+import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { clientIp, writeAudit } from '../utils/audit.js';
 import { getCommunicationConfig } from '../config/communications.js';
 import { createEmailClient } from '../services/emailClient.js';
@@ -43,7 +43,7 @@ export const registerRules = [
   body('name').trim().notEmpty().withMessage('Name is required'),
   body('email').isEmail().withMessage('Valid email is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('role').optional().isIn(['super_admin', 'admin', 'employee', 'vendor', 'freelancer'])
+  body('role').optional().isIn(['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'])
 ];
 
 export const setPasswordRules = [
@@ -146,6 +146,7 @@ export async function updateProfile(req, res, next) {
     if (user.linkedEmployee) linkedUpdates.push(Employee.findByIdAndUpdate(user.linkedEmployee, { name, email }));
     if (user.linkedVendor) linkedUpdates.push(Vendor.findByIdAndUpdate(user.linkedVendor, { contactPerson: name, email }));
     if (user.linkedFreelancer) linkedUpdates.push(Freelancer.findByIdAndUpdate(user.linkedFreelancer, { name, email }));
+    if (user.linkedCandidate) linkedUpdates.push(Candidate.findByIdAndUpdate(user.linkedCandidate, { fullName: name, email }));
     await Promise.all(linkedUpdates);
 
     await writeAudit(req, 'UPDATE', 'Profile', user, { name, email, passwordChanged: Boolean(newPassword) });

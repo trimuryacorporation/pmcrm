@@ -1,7 +1,7 @@
 import DeliveryLog from '../models/DeliveryLog.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { Employee, Freelancer, Vendor } from '../models/People.js';
+import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { getCommunicationConfig } from '../config/communications.js';
 import { createEmailClient } from './emailClient.js';
 
@@ -84,17 +84,19 @@ async function sendWhatsApp(project, recipient, type, config) {
 
 export async function notifyProjectCreated(project) {
   const config = await getCommunicationConfig();
-  const explicit = project.projectManager || project.employees?.length || project.vendors?.length || project.freelancers?.length;
+  const explicit = project.projectManager || project.employees?.length || project.vendors?.length || project.freelancers?.length || project.candidates?.length;
   const employeeIds = [...new Set([project.projectManager, ...(project.employees || [])].filter(Boolean).map(String))];
-  const [employees, vendors, freelancers] = await Promise.all([
+  const [employees, vendors, freelancers, candidates] = await Promise.all([
     Employee.find(explicit ? { _id: { $in: employeeIds }, status: 'Active' } : { status: 'Active' }),
     Vendor.find(explicit ? { _id: { $in: project.vendors || [] }, status: 'Active' } : { status: 'Active' }),
-    Freelancer.find(explicit ? { _id: { $in: project.freelancers || [] }, status: 'Active' } : { status: 'Active' })
+    Freelancer.find(explicit ? { _id: { $in: project.freelancers || [] }, status: 'Active' } : { status: 'Active' }),
+    Candidate.find(explicit ? { _id: { $in: project.candidates || [] }, status: { $in: ['Selected', 'Active'] } } : { status: { $in: ['Selected', 'Active'] } })
   ]);
   const recipients = [
     ...employees.map((person) => ({ person, type: 'Employee' })),
     ...vendors.map((person) => ({ person: { ...person.toObject(), name: person.agencyName }, type: 'Vendor' })),
-    ...freelancers.map((person) => ({ person, type: 'Freelancer' }))
+    ...freelancers.map((person) => ({ person, type: 'Freelancer' })),
+    ...candidates.map((person) => ({ person: { ...person.toObject(), name: person.fullName, phone: person.mobile }, type: 'Candidate' }))
   ];
   const transport = emailTransport(config.email);
   await Promise.allSettled(recipients.flatMap(({ person, type }) => [sendEmail(project, person, type, transport, config.email), sendWhatsApp(project, person, type, config.whatsapp)]));
@@ -103,7 +105,8 @@ export async function notifyProjectCreated(project) {
   const linkedUsers = await User.find({ $or: [
     { linkedEmployee: { $in: employees.map((item) => item._id) } },
     { linkedVendor: { $in: vendors.map((item) => item._id) } },
-    { linkedFreelancer: { $in: freelancers.map((item) => item._id) } }
+    { linkedFreelancer: { $in: freelancers.map((item) => item._id) } },
+    { linkedCandidate: { $in: candidates.map((item) => item._id) } }
   ] });
   await Notification.insertMany(linkedUsers.map((user) => ({ user: user._id, title: 'New project assigned', message: `${project.name} (${project.code}) is now available`, type: 'Project', link: `/projects/${project._id}` })));
 }

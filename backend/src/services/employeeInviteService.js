@@ -11,7 +11,8 @@ function frontendUrl() {
 const roleProfile = {
   employee: { link: 'linkedEmployee', name: (person) => person.name },
   vendor: { link: 'linkedVendor', name: (person) => person.contactPerson || person.agencyName },
-  freelancer: { link: 'linkedFreelancer', name: (person) => person.name }
+  freelancer: { link: 'linkedFreelancer', name: (person) => person.name },
+  candidate: { link: 'linkedCandidate', name: (person) => person.fullName }
 };
 
 export async function invitePerson(person, role) {
@@ -78,3 +79,4 @@ export async function invitePerson(person, role) {
 export const inviteEmployee = (employee) => invitePerson(employee, 'employee');
 export const inviteVendor = (vendor) => invitePerson(vendor, 'vendor');
 export const inviteFreelancer = (freelancer) => invitePerson(freelancer, 'freelancer');
+export const inviteCandidate = (candidate) => invitePerson(candidate, 'candidate');

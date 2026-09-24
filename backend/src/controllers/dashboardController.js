@@ -30,12 +30,16 @@ export async function dashboard(req, res, next) {
       ? { employees: req.user.linkedEmployee }
       : req.user.role === 'vendor'
         ? { vendors: req.user.linkedVendor }
-        : { freelancers: req.user.linkedFreelancer };
+        : req.user.role === 'freelancer'
+          ? { freelancers: req.user.linkedFreelancer }
+          : { candidates: req.user.linkedCandidate };
     const taskFilter = isAdmin ? {} : req.user.role === 'employee'
       ? { employee: req.user.linkedEmployee }
       : req.user.role === 'vendor'
         ? { vendor: req.user.linkedVendor }
-        : { freelancer: req.user.linkedFreelancer };
+        : req.user.role === 'freelancer'
+          ? { freelancer: req.user.linkedFreelancer }
+          : { candidate: req.user.linkedCandidate };
     const [
       totalProjects,
       activeProjects,
@@ -83,11 +87,12 @@ export async function dashboard(req, res, next) {
         ])
         : Promise.resolve([[], [], []]),
       isAdmin
-        ? User.find({ role: { $in: ['employee', 'vendor', 'freelancer'] } })
-          .select('name email role linkedEmployee linkedVendor linkedFreelancer passwordSetAt +passwordSetupToken +passwordSetupExpires')
+      ? User.find({ role: { $in: ['employee', 'vendor', 'freelancer', 'candidate'] } })
+          .select('name email role linkedEmployee linkedVendor linkedFreelancer linkedCandidate passwordSetAt +passwordSetupToken +passwordSetupExpires')
           .populate('linkedEmployee', 'name')
           .populate('linkedVendor', 'agencyName contactPerson')
           .populate('linkedFreelancer', 'name')
+          .populate('linkedCandidate', 'fullName')
           .lean()
         : Promise.resolve([])
     ]);
@@ -108,14 +113,14 @@ export async function dashboard(req, res, next) {
     const languageSummary = [...languageSummaryMap.values()]
       .sort((a, b) => (b.candidates + b.vendors + b.freelancers) - (a.candidates + a.vendors + a.freelancers) || a.language.localeCompare(b.language));
     const passwordSetupRecords = passwordSetupUsers.map((account) => {
-      const profile = account.linkedVendor || account.linkedFreelancer || account.linkedEmployee;
-      const name = profile?.agencyName || profile?.contactPerson || profile?.name || account.name;
+      const profile = account.linkedVendor || account.linkedFreelancer || account.linkedEmployee || account.linkedCandidate;
+      const name = profile?.agencyName || profile?.contactPerson || profile?.name || profile?.fullName || account.name;
       const status = account.passwordSetAt
         ? 'Password set'
         : account.passwordSetupToken && account.passwordSetupExpires > new Date()
           ? 'Setup pending'
           : 'Not set';
-      const resource = account.role === 'vendor' ? 'vendors' : account.role === 'freelancer' ? 'freelancers' : 'employees';
+      const resource = account.role === 'vendor' ? 'vendors' : account.role === 'freelancer' ? 'freelancers' : account.role === 'candidate' ? 'candidates' : 'employees';
       return { id: account._id, profileId: profile?._id, resource, name, email: account.email, role: account.role, status };
     });
     const passwordSetupSummary = ['Password set', 'Setup pending', 'Not set'].map((status) => ({

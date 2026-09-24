@@ -1,6 +1,6 @@
 import { body } from 'express-validator';
 import { Candidate, Freelancer, Vendor } from '../models/People.js';
-import { inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
+import { inviteCandidate, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 import { ensureUniquePersonContact } from '../services/personContactService.js';
 
 const types = ['candidate', 'vendor', 'freelancer'];
@@ -64,10 +64,9 @@ export async function submitOnboarding(req, res, next) {
 
     if (type === 'vendor') await inviteVendor(person);
     if (type === 'freelancer') await inviteFreelancer(person);
+    if (type === 'candidate') await inviteCandidate(person);
 
-    const message = type === 'candidate'
-      ? 'Your candidate profile has been submitted successfully.'
-      : 'Your profile has been submitted. Check your email to set up your password.';
+    const message = 'Your profile has been submitted. Check your email to set up your password.';
     res.status(201).json({ message });
   } catch (error) {
     if (person) await person.deleteOne().catch(() => {});

@@ -5,7 +5,7 @@ export const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Projects', path: '/projects', icon: Briefcase, roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
   { label: 'Clients', path: '/clients', icon: Building2, roles: ['super_admin', 'admin'] },
-  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee', 'candidate'] },
   { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
@@ -19,6 +19,18 @@ export const navItems = [
 ];
 
 export const moduleConfig = {
+  financePayments: {
+    title: 'Payments',
+    singular: 'Payment',
+    endpoint: 'payments',
+    listPath: '/payments'
+  },
+  financeInvoices: {
+    title: 'Invoices',
+    singular: 'Invoice',
+    endpoint: 'invoices',
+    listPath: '/payments'
+  },
   projects: {
     title: 'Projects',
     singular: 'Project',
