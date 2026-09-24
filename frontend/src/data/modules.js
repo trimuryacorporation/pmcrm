@@ -2,14 +2,14 @@ import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, Layout
 import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-  { label: 'Projects', path: '/projects', icon: Briefcase },
-  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee', 'vendor'] },
-  { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'employee', 'vendor'] },
-  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
-  { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'vendor', 'employee'] },
-  { label: 'Allocation', path: '/allocation', icon: ClipboardList },
-  { label: 'Tasks', path: '/tasks', icon: ClipboardList },
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Projects', path: '/projects', icon: Briefcase, roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
+  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Allocation', path: '/allocation', icon: ClipboardList, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Tasks', path: '/tasks', icon: ClipboardList, roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Payments', path: '/payments', icon: WalletCards, roles: ['super_admin', 'admin'] },
   { label: 'Reports', path: '/reports', icon: CircleDollarSign, roles: ['super_admin', 'admin'] },
   { label: 'Activity', path: '/activity', icon: Activity, roles: ['super_admin', 'admin'] },

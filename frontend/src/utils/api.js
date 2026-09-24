@@ -77,7 +77,10 @@ export const endpoints = {
   testWhatsApp: (to) => api('/settings/communications/test-whatsapp', { method: 'POST', body: JSON.stringify({ to }) }),
   validateInvite: (token) => api(`/auth/invite/${encodeURIComponent(token)}`),
   setPassword: (token, password) => api('/auth/set-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
+  forgotPassword: (email) => api('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (token, password) => api('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
   inviteEmployee: (id) => api(`/employees/${id}/invite`, { method: 'POST' }),
+  invitePerson: (resource, id) => api(`/${resource}/${id}/invite`, { method: 'POST' }),
   report: (query) => api(`/reports?${new URLSearchParams(query)}`),
   downloadReport: (query) => download(`/reports?${new URLSearchParams({ ...query, format: 'csv' })}`, `${query.type}-report.csv`)
 };

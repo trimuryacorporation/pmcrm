@@ -10,12 +10,10 @@ import { validate } from '../middleware/validate.js';
 import { createCrudController } from '../controllers/crudController.js';
 import { createAllocation } from '../controllers/allocationController.js';
 import { notifyProjectCreated } from '../services/projectNotificationService.js';
-import { inviteEmployee } from '../services/employeeInviteService.js';
+import { inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 
 const adminRoles = ['super_admin', 'admin'];
-const vendorManagers = [...adminRoles, 'vendor'];
 const employeeManagers = [...adminRoles, 'employee'];
-const peopleManagers = [...adminRoles, 'vendor', 'employee'];
 const hiddenContact = '******';
 
 function hideAdminOnlyFields(fields) {
@@ -123,10 +121,11 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
 }), [
   body('fullName').notEmpty(),
   body('mobile').notEmpty().withMessage('Mobile number is required')
-], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: peopleManagers });
+], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
   populate: 'assignedProjects ownerEmployee',
   searchFields: ['agencyName'],
+  afterCreate: inviteVendor,
   languageField: 'languagesAvailable',
   prepareCreate: employeeOwnedData,
   prepareUpdate: employeeOwnedData,
@@ -143,10 +142,11 @@ export const vendorRoutes = routerFor(createCrudController(Vendor, {
   }
 }), [
   body('agencyName').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: employeeManagers });
+], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
 export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
   populate: 'assignedProjects vendor ownerEmployee',
   searchFields: ['name'],
+  afterCreate: inviteFreelancer,
   languageField: 'language',
   prepareCreate: peopleOwnedData,
   prepareUpdate: peopleOwnedData,
@@ -165,7 +165,7 @@ export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
   }
 }), [
   body('name').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'], writeRoles: peopleManagers });
+], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
 export const employeeRoutes = routerFor(createCrudController(Employee, {
   populate: 'assignedProjects vendor',
   searchFields: ['name', 'employeeId'],
@@ -181,15 +181,10 @@ export const employeeRoutes = routerFor(createCrudController(Employee, {
   body('employeeId').notEmpty(),
   body('name').notEmpty(),
   body('email').isEmail().withMessage('A valid email is required to invite the employee')
-], { readRoles: ['super_admin', 'admin', 'vendor', 'employee'], writeRoles: vendorManagers });
-employeeRoutes.post('/:id/invite', authorize(...vendorManagers), async (req, res, next) => {
+], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
+employeeRoutes.post('/:id/invite', authorize(...employeeManagers), async (req, res, next) => {
   try {
-    if (req.user.role === 'vendor' && !req.user.linkedVendor) {
-      res.status(403);
-      throw new Error('Vendor account is not linked to a vendor profile');
-    }
     const filter = { _id: req.params.id };
-    if (req.user.role === 'vendor') filter.vendor = req.user.linkedVendor;
     const employee = await Employee.findOne(filter);
     if (!employee) {
       res.status(404);
@@ -202,6 +197,25 @@ employeeRoutes.post('/:id/invite', authorize(...vendorManagers), async (req, res
   }
 });
 
+function invitePersonRoute(Model, invite, resourceName) {
+  return async (req, res, next) => {
+    try {
+      const person = await Model.findById(req.params.id);
+      if (!person) {
+        res.status(404);
+        throw new Error(`${resourceName} not found`);
+      }
+      await invite(person);
+      res.json({ message: `Password setup email sent to ${person.email}` });
+    } catch (error) {
+      next(error);
+    }
+  };
+}
+
+vendorRoutes.post('/:id/invite', authorize(...employeeManagers), invitePersonRoute(Vendor, inviteVendor, 'Vendor'));
+freelancerRoutes.post('/:id/invite', authorize(...employeeManagers), invitePersonRoute(Freelancer, inviteFreelancer, 'Freelancer'));
+
 const allocationController = createCrudController(Allocation, {
   populate: 'project employee vendor freelancer candidate',
   userScope: (user) => {
@@ -213,8 +227,8 @@ const allocationController = createCrudController(Allocation, {
 });
 export const allocationRoutes = express.Router();
 allocationRoutes.use(protect);
-allocationRoutes.route('/').get(allocationController.list).post(authorize(...adminRoles), createAllocation);
-allocationRoutes.route('/:id').get(allocationController.get).put(authorize(...adminRoles), allocationController.update).delete(authorize(...adminRoles), allocationController.remove);
+allocationRoutes.route('/').get(authorize(...employeeManagers), allocationController.list).post(authorize(...adminRoles), createAllocation);
+allocationRoutes.route('/:id').get(authorize(...employeeManagers), allocationController.get).put(authorize(...adminRoles), allocationController.update).delete(authorize(...adminRoles), allocationController.remove);
 
 const taskController = createCrudController(Task, {
   populate: 'project employee vendor freelancer candidate',
@@ -227,10 +241,10 @@ const taskController = createCrudController(Task, {
 });
 export const taskRoutes = express.Router();
 taskRoutes.use(protect);
-taskRoutes.route('/').get(taskController.list).post(authorize(...adminRoles), [body('title').notEmpty(), body('project').notEmpty()], validate, taskController.create);
+taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...adminRoles), [body('title').notEmpty(), body('project').notEmpty()], validate, taskController.create);
 taskRoutes.route('/:id')
-  .get(taskController.get)
-  .put((req, res, next) => {
+  .get(authorize(...employeeManagers), taskController.get)
+  .put(authorize(...employeeManagers), (req, res, next) => {
     if (adminRoles.includes(req.user.role)) return next();
     req.body = Object.fromEntries(Object.entries(req.body).filter(([key]) => ['status', 'completionPercentage', 'comments'].includes(key)));
     next();

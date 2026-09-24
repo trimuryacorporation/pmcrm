@@ -8,9 +8,18 @@ function frontendUrl() {
   return (configured || 'http://localhost:5173').replace(/\/$/, '');
 }
 
-export async function inviteEmployee(employee) {
-  const email = employee.email?.trim().toLowerCase();
-  if (!email) throw new Error('Employee email is required to send an invite');
+const roleProfile = {
+  employee: { link: 'linkedEmployee', name: (person) => person.name },
+  vendor: { link: 'linkedVendor', name: (person) => person.contactPerson || person.agencyName },
+  freelancer: { link: 'linkedFreelancer', name: (person) => person.name }
+};
+
+export async function invitePerson(person, role) {
+  const email = person.email?.trim().toLowerCase();
+  const profile = roleProfile[role];
+  if (!profile) throw new Error('Unsupported account role');
+  if (!email) throw new Error(`${role} email is required to send an invite`);
+  const name = profile.name(person);
 
   const rawToken = crypto.randomBytes(32).toString('hex');
   const passwordSetupToken = crypto.createHash('sha256').update(rawToken).digest('hex');
@@ -21,21 +30,21 @@ export async function inviteEmployee(employee) {
   const previousExpiry = user?.passwordSetupExpires;
 
   try {
-    if (user && (user.role !== 'employee' || String(user.linkedEmployee || '') !== String(employee._id))) {
+    if (user && (user.role !== role || String(user[profile.link] || '') !== String(person._id))) {
       throw new Error('A different login account already exists for this email');
     }
     if (!user) {
       user = await User.create({
-        name: employee.name,
+        name,
         email,
         password: temporaryPassword,
-        role: 'employee',
-        linkedEmployee: employee._id,
+        role,
+        [profile.link]: person._id,
         passwordSetupToken,
         passwordSetupExpires: new Date(Date.now() + 24 * 60 * 60 * 1000)
       });
     } else {
-      user.name = employee.name;
+      user.name = name;
       user.passwordSetupToken = passwordSetupToken;
       user.passwordSetupExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
       await user.save();
@@ -52,7 +61,7 @@ export async function inviteEmployee(employee) {
       from: config.from,
       to: email,
       subject: 'Set up your CRM account',
-      text: `Hello ${employee.name},\n\nYour CRM account has been created. Set your password using this link:\n${inviteUrl}\n\nThis link expires in 24 hours and can only be used once.`
+      text: `Hello ${name},\n\nYour CRM account has been created. Set your password using this secure link:\n${inviteUrl}\n\nThis link expires in 24 hours and can only be used once. After setup, sign in with this email: ${email}\nLogin platform: ${frontendUrl()}/login`
     });
     transport.close();
   } catch (error) {
@@ -65,3 +74,7 @@ export async function inviteEmployee(employee) {
     throw error;
   }
 }
+
+export const inviteEmployee = (employee) => invitePerson(employee, 'employee');
+export const inviteVendor = (vendor) => invitePerson(vendor, 'vendor');
+export const inviteFreelancer = (freelancer) => invitePerson(freelancer, 'freelancer');

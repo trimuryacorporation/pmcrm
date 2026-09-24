@@ -26,7 +26,7 @@ export default function ModulePage({ module }) {
   const pageSize = directoryModule ? 100 : 50;
   const statusOptions = config.fields.find(([name]) => name === 'status')?.[3] || [];
   const { user } = useAuth();
-  const vendorManagedModules = ['candidates', 'freelancers', 'employees'];
+  const vendorManagedModules = [];
   const employeeManagedModules = ['candidates', 'vendors', 'freelancers'];
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
   const visibleColumns = isAdmin ? config.columns : config.columns.filter((column) => !config.adminOnlyColumns?.includes(column));
@@ -126,7 +126,7 @@ export default function ModulePage({ module }) {
   async function invite(row) {
     setInvitingId(row._id);
     try {
-      const result = await endpoints.inviteEmployee(row._id);
+      const result = await endpoints.invitePerson(config.endpoint, row._id);
       toast.success(result.message);
     } catch (error) {
       toast.error(error.message);
@@ -171,7 +171,7 @@ export default function ModulePage({ module }) {
           {exporting ? 'Preparing...' : 'Download Excel'}
         </button>
       </div>}
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && module === 'employees' ? invite : undefined} invitingId={invitingId} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? remove : undefined} onInvite={canManage && ['employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} invitingId={invitingId} />}
       {directoryModule && pagination.total > 0 && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">Showing {Math.min((page - 1) * pageSize + 1, pagination.total)}-{Math.min(page * pageSize, pagination.total)} of {pagination.total} records</p>
         <div className="flex items-center gap-2">

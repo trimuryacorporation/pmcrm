@@ -14,6 +14,8 @@ const userSchema = new mongoose.Schema(
     linkedFreelancer: { type: mongoose.Schema.Types.ObjectId, ref: 'Freelancer' },
     passwordSetupToken: { type: String, select: false },
     passwordSetupExpires: { type: Date, select: false },
+    passwordResetToken: { type: String, select: false },
+    passwordResetExpires: { type: Date, select: false },
     passwordSetAt: Date,
     avatar: String,
     isActive: { type: Boolean, default: true },
@@ -43,5 +45,6 @@ userSchema.methods.matchPassword = function matchPassword(password) {
 };
 
 userSchema.index({ passwordSetupToken: 1 }, { sparse: true });
+userSchema.index({ passwordResetToken: 1 }, { sparse: true });
 
 export default mongoose.model('User', userSchema);

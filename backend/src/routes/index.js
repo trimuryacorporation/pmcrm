@@ -27,7 +27,7 @@ const router = express.Router();
 
 router.use('/auth', authRoutes);
 router.use('/administrators', adminRoutes);
-router.get('/dashboard', protect, dashboard);
+router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee'), dashboard);
 router.use('/projects', projectRoutes);
 router.use('/candidates', candidateRoutes);
 router.use('/vendors', vendorRoutes);

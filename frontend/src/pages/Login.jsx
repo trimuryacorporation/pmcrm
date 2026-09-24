@@ -1,7 +1,7 @@
 import { LockKeyhole, Mail } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Login() {
@@ -60,6 +60,9 @@ export default function Login() {
                 <input className="w-full outline-none" type="password" value={password} onChange={(event) => setPassword(event.target.value)} />
               </div>
             </label>
+            <div className="mb-6 -mt-2 text-right">
+              <Link className="text-sm font-semibold text-indigo-600 hover:text-indigo-700" to="/forgot-password">Forgot password?</Link>
+            </div>
             <button className="btn-primary w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Login to CRM'}
             </button>

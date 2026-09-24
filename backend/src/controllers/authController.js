@@ -4,6 +4,8 @@ import { body } from 'express-validator';
 import User from '../models/User.js';
 import { Employee, Freelancer, Vendor } from '../models/People.js';
 import { clientIp, writeAudit } from '../utils/audit.js';
+import { getCommunicationConfig } from '../config/communications.js';
+import { createEmailClient } from '../services/emailClient.js';
 
 function signToken(user) {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -48,6 +50,20 @@ export const setPasswordRules = [
   body('token').notEmpty().withMessage('Invite token is required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
 ];
+
+export const forgotPasswordRules = [
+  body('email').isEmail().withMessage('Valid email is required')
+];
+
+export const resetPasswordRules = [
+  body('token').notEmpty().withMessage('Reset token is required'),
+  body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+];
+
+function frontendUrl() {
+  const configured = process.env.APP_URL || (process.env.CLIENT_URL || '').split(',').map((value) => value.trim()).find(Boolean);
+  return (configured || 'http://localhost:5173').replace(/\/$/, '');
+}
 
 export const updateProfileRules = [
   body('name').trim().notEmpty().withMessage('Name is required'),
@@ -147,7 +163,7 @@ export async function validateInvite(req, res, next) {
       res.status(400);
       throw new Error('This invite link is invalid or has expired');
     }
-    res.json({ valid: true, email: user.email, name: user.name });
+    res.json({ valid: true, email: user.email, name: user.name, role: user.role });
   } catch (error) {
     next(error);
   }
@@ -167,7 +183,71 @@ export async function setPassword(req, res, next) {
     user.passwordSetupExpires = undefined;
     user.passwordSetAt = new Date();
     await user.save();
-    res.json({ message: 'Password set successfully. You can now sign in.' });
+    res.json({ message: 'Password set successfully. You can now sign in.', email: user.email, role: user.role });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function forgotPassword(req, res, next) {
+  try {
+    const email = req.body.email.trim().toLowerCase();
+    const user = await User.findOne({ email, isActive: true }).select('+passwordResetToken +passwordResetExpires');
+
+    // Always return the same response so this endpoint cannot reveal registered emails.
+    if (!user) return res.json({ message: 'If an active account exists for this email, a reset link has been sent.' });
+
+    const config = (await getCommunicationConfig()).email;
+    if (!config.enabled || !config.host || !config.user || !config.password || !config.from) {
+      res.status(503);
+      throw new Error('Password reset email is unavailable because SMTP settings are not configured');
+    }
+
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    user.passwordResetToken = crypto.createHash('sha256').update(rawToken).digest('hex');
+    user.passwordResetExpires = new Date(Date.now() + 60 * 60 * 1000);
+    await user.save();
+
+    try {
+      const resetUrl = `${frontendUrl()}/reset-password?token=${rawToken}`;
+      const transport = createEmailClient(config);
+      await transport.sendMail({
+        from: config.from,
+        to: user.email,
+        subject: 'Reset your CRM password',
+        text: `Hello ${user.name},\n\nWe received a request to reset your CRM password. Use this secure link to choose a new password:\n${resetUrl}\n\nThis link expires in 1 hour and can only be used once. If you did not request this, you can safely ignore this email.`,
+        html: `<p>Hello ${user.name},</p><p>We received a request to reset your CRM password.</p><p><a href="${resetUrl}">Reset your password</a></p><p>This link expires in 1 hour and can only be used once. If you did not request this, you can safely ignore this email.</p>`
+      });
+      transport.close();
+    } catch (emailError) {
+      user.passwordResetToken = undefined;
+      user.passwordResetExpires = undefined;
+      await user.save();
+      throw emailError;
+    }
+
+    res.json({ message: 'If an active account exists for this email, a reset link has been sent.' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function resetPassword(req, res, next) {
+  try {
+    const token = crypto.createHash('sha256').update(req.body.token).digest('hex');
+    const user = await User.findOne({ passwordResetToken: token, passwordResetExpires: { $gt: new Date() } })
+      .select('+passwordResetToken +passwordResetExpires');
+    if (!user) {
+      res.status(400);
+      throw new Error('This password reset link is invalid or has expired');
+    }
+
+    user.password = req.body.password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    user.passwordSetAt = new Date();
+    await user.save();
+    res.json({ message: 'Password reset successfully. You can now sign in.' });
   } catch (error) {
     next(error);
   }
