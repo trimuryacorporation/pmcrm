@@ -1,7 +1,7 @@
 import ISO6391 from 'iso-639-1';
 
 const indianLanguages = [
-  'Assamese', 'Bengali', 'Bodo', 'Dogri', 'Gujarati', 'Hindi', 'Kannada', 'Kashmiri', 'Konkani',
+  'Assamese', 'Bengali', 'Bodo', 'Dogri', 'English', 'Gujarati', 'Hindi', 'Kannada', 'Kashmiri', 'Konkani',
   'Maithili', 'Malayalam', 'Manipuri (Meitei)', 'Marathi', 'Nepali', 'Odia', 'Punjabi', 'Sanskrit',
   'Santali', 'Sindhi', 'Tamil', 'Telugu', 'Urdu'
 ];
@@ -29,7 +29,8 @@ const internationalLanguages = ISO6391.getAllNames()
 export const LANGUAGE_OPTIONS = [
   ...indianLanguages.map((name) => ({ value: name, label: `India - ${name}` })),
   ...pakistanLanguages.map((name) => ({ value: `Pakistan - ${name}`, label: `Pakistan - ${name}` })),
-  ...internationalLanguages.map((name) => ({ value: name, label: `International - ${name}` }))
+  // ISO-639 includes languages used across every country, beyond the India and Pakistan lists above.
+  ...internationalLanguages.map((name) => ({ value: name, label: `International / All Countries - ${name}` }))
 ];
 
 function projectTypes(category, names) {
