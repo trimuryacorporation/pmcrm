@@ -2,6 +2,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
 import User from '../models/User.js';
+import { Employee, Freelancer, Vendor } from '../models/People.js';
 import { clientIp, writeAudit } from '../utils/audit.js';
 
 function signToken(user) {
@@ -13,18 +14,22 @@ function signToken(user) {
 function sendUser(res, user) {
   res.json({
     token: signToken(user),
-    user: {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      lastLoginAt: user.lastLoginAt,
-      lastSeenAt: user.lastSeenAt,
-      locationSharingEnabled: user.locationSharingEnabled,
-      lastLocation: user.lastLocation
-    }
+    user: userResponse(user)
   });
+}
+
+function userResponse(user) {
+  return {
+    id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    avatar: user.avatar,
+    lastLoginAt: user.lastLoginAt,
+    lastSeenAt: user.lastSeenAt,
+    locationSharingEnabled: user.locationSharingEnabled,
+    lastLocation: user.lastLocation
+  };
 }
 
 export const loginRules = [
@@ -42,6 +47,12 @@ export const registerRules = [
 export const setPasswordRules = [
   body('token').notEmpty().withMessage('Invite token is required'),
   body('password').isLength({ min: 8 }).withMessage('Password must be at least 8 characters')
+];
+
+export const updateProfileRules = [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('email').isEmail().withMessage('Valid email is required'),
+  body('newPassword').optional({ values: 'falsy' }).isLength({ min: 8 }).withMessage('New password must be at least 8 characters')
 ];
 
 export async function login(req, res, next) {
@@ -89,6 +100,43 @@ export async function register(req, res, next) {
 
 export async function me(req, res) {
   res.json({ user: req.user });
+}
+
+export async function updateProfile(req, res, next) {
+  try {
+    const user = await User.findById(req.user._id).select('+password');
+    const name = req.body.name.trim();
+    const email = req.body.email.trim().toLowerCase();
+    const newPassword = String(req.body.newPassword || '');
+
+    if (await User.exists({ email, _id: { $ne: user._id } })) {
+      res.status(409);
+      throw new Error('Email already exists');
+    }
+    if (newPassword) {
+      if (!req.body.currentPassword || !(await user.matchPassword(req.body.currentPassword))) {
+        res.status(400);
+        throw new Error('Current password is incorrect');
+      }
+      user.password = newPassword;
+      user.passwordSetAt = new Date();
+    }
+
+    user.name = name;
+    user.email = email;
+    await user.save();
+
+    const linkedUpdates = [];
+    if (user.linkedEmployee) linkedUpdates.push(Employee.findByIdAndUpdate(user.linkedEmployee, { name, email }));
+    if (user.linkedVendor) linkedUpdates.push(Vendor.findByIdAndUpdate(user.linkedVendor, { contactPerson: name, email }));
+    if (user.linkedFreelancer) linkedUpdates.push(Freelancer.findByIdAndUpdate(user.linkedFreelancer, { name, email }));
+    await Promise.all(linkedUpdates);
+
+    await writeAudit(req, 'UPDATE', 'Profile', user, { name, email, passwordChanged: Boolean(newPassword) });
+    res.json({ message: 'Profile updated successfully', user: userResponse(user) });
+  } catch (error) {
+    next(error);
+  }
 }
 
 export async function validateInvite(req, res, next) {

@@ -13,6 +13,22 @@ import { notifyProjectCreated } from '../services/projectNotificationService.js'
 import { inviteEmployee } from '../services/employeeInviteService.js';
 
 const adminRoles = ['super_admin', 'admin'];
+const vendorManagers = [...adminRoles, 'vendor'];
+
+function vendorScope(user, fallback = {}) {
+  if (user.role !== 'vendor') return fallback;
+  return user.linkedVendor ? { vendor: user.linkedVendor } : { _id: null };
+}
+
+function vendorOwnedData(req, body) {
+  if (req.user.role !== 'vendor') return body;
+  if (!req.user.linkedVendor) {
+    const error = new Error('Vendor account is not linked to a vendor profile');
+    error.statusCode = 403;
+    throw error;
+  }
+  return { ...body, vendor: req.user.linkedVendor };
+}
 
 function routerFor(controller, rules = [], access = {}) {
   const router = express.Router();
@@ -39,36 +55,60 @@ export const projectRoutes = routerFor(
   [body('name').notEmpty(), body('code').notEmpty(), body('clientName').notEmpty()]
 );
 
-export const candidateRoutes = routerFor(createCrudController(Candidate, { populate: 'assignedProject', searchFields: ['fullName', 'email'] }), [
+export const candidateRoutes = routerFor(createCrudController(Candidate, {
+  populate: 'assignedProject vendor',
+  searchFields: ['fullName', 'email'],
+  prepareCreate: vendorOwnedData,
+  prepareUpdate: vendorOwnedData,
+  userScope: (user) => vendorScope(user)
+}), [
   body('fullName').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'employee'] });
+], { readRoles: ['super_admin', 'admin', 'employee', 'vendor'], writeRoles: vendorManagers });
 export const vendorRoutes = routerFor(createCrudController(Vendor, {
   populate: 'assignedProjects',
   searchFields: ['agencyName'],
-  userScope: (user) => (user.role === 'vendor' ? { _id: user.linkedVendor } : {})
+  userScope: (user) => (user.role === 'vendor' ? (user.linkedVendor ? { _id: user.linkedVendor } : { _id: null }) : {})
 }), [
   body('agencyName').notEmpty()
 ], { readRoles: ['super_admin', 'admin', 'vendor'] });
 export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
-  populate: 'assignedProjects',
+  populate: 'assignedProjects vendor',
   searchFields: ['name'],
-  userScope: (user) => (user.role === 'freelancer' ? { _id: user.linkedFreelancer } : {})
+  prepareCreate: vendorOwnedData,
+  prepareUpdate: vendorOwnedData,
+  userScope: (user) => {
+    if (user.role === 'vendor') return vendorScope(user);
+    if (user.role === 'freelancer') return user.linkedFreelancer ? { _id: user.linkedFreelancer } : { _id: null };
+    return {};
+  }
 }), [
   body('name').notEmpty()
-], { readRoles: ['super_admin', 'admin', 'freelancer'] });
+], { readRoles: ['super_admin', 'admin', 'vendor', 'freelancer'], writeRoles: vendorManagers });
 export const employeeRoutes = routerFor(createCrudController(Employee, {
-  populate: 'assignedProjects',
+  populate: 'assignedProjects vendor',
   searchFields: ['name', 'employeeId'],
   afterCreate: inviteEmployee,
-  userScope: (user) => (user.role === 'employee' ? { _id: user.linkedEmployee } : {})
+  prepareCreate: vendorOwnedData,
+  prepareUpdate: vendorOwnedData,
+  userScope: (user) => {
+    if (user.role === 'vendor') return vendorScope(user);
+    if (user.role === 'employee') return user.linkedEmployee ? { _id: user.linkedEmployee } : { _id: null };
+    return {};
+  }
 }), [
   body('employeeId').notEmpty(),
   body('name').notEmpty(),
   body('email').isEmail().withMessage('A valid email is required to invite the employee')
-], { readRoles: ['super_admin', 'admin', 'employee'] });
-employeeRoutes.post('/:id/invite', authorize(...adminRoles), async (req, res, next) => {
+], { readRoles: ['super_admin', 'admin', 'vendor', 'employee'], writeRoles: vendorManagers });
+employeeRoutes.post('/:id/invite', authorize(...vendorManagers), async (req, res, next) => {
   try {
-    const employee = await Employee.findById(req.params.id);
+    if (req.user.role === 'vendor' && !req.user.linkedVendor) {
+      res.status(403);
+      throw new Error('Vendor account is not linked to a vendor profile');
+    }
+    const filter = { _id: req.params.id };
+    if (req.user.role === 'vendor') filter.vendor = req.user.linkedVendor;
+    const employee = await Employee.findOne(filter);
     if (!employee) {
       res.status(404);
       throw new Error('Employee not found');

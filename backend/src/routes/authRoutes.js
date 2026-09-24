@@ -1,5 +1,5 @@
 import express from 'express';
-import { login, loginRules, me, register, registerRules, setPassword, setPasswordRules, validateInvite } from '../controllers/authController.js';
+import { login, loginRules, me, register, registerRules, setPassword, setPasswordRules, updateProfile, updateProfileRules, validateInvite } from '../controllers/authController.js';
 import { protect, authorize } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 
@@ -9,6 +9,7 @@ router.post('/login', loginRules, validate, login);
 router.get('/invite/:token', validateInvite);
 router.post('/set-password', setPasswordRules, validate, setPassword);
 router.get('/me', protect, me);
+router.put('/profile', protect, updateProfileRules, validate, updateProfile);
 router.post('/register', protect, authorize('super_admin', 'admin'), registerRules, validate, register);
 
 export default router;

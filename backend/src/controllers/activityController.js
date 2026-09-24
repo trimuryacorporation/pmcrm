@@ -20,6 +20,7 @@ export async function heartbeat(req, res, next) {
 export async function updateLocation(req, res, next) {
   try {
     const { latitude, longitude, accuracy, enabled = true } = req.body;
+    const wasEnabled = req.user.locationSharingEnabled;
     const update = { locationSharingEnabled: Boolean(enabled) };
     if (enabled) {
       if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
@@ -30,7 +31,8 @@ export async function updateLocation(req, res, next) {
     }
     await User.findByIdAndUpdate(req.user._id, update, { runValidators: true });
     Object.assign(req.user, update);
-    await writeAudit(req, enabled ? 'LOCATION_UPDATED' : 'LOCATION_DISABLED', 'User', req.user);
+    if (!wasEnabled && enabled) await writeAudit(req, 'LOCATION_ENABLED', 'User', req.user);
+    if (wasEnabled && !enabled) await writeAudit(req, 'LOCATION_DISABLED', 'User', req.user);
     res.json({ locationSharingEnabled: update.locationSharingEnabled, lastLocation: update.lastLocation || req.user.lastLocation });
   } catch (error) {
     next(error);

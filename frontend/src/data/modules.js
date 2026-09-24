@@ -3,10 +3,10 @@ import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, Layout
 export const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
   { label: 'Projects', path: '/projects', icon: Briefcase },
-  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee', 'vendor'] },
   { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'vendor'] },
-  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'freelancer'] },
-  { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'vendor', 'freelancer'] },
+  { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'vendor', 'employee'] },
   { label: 'Allocation', path: '/allocation', icon: ClipboardList },
   { label: 'Tasks', path: '/tasks', icon: ClipboardList },
   { label: 'Payments', path: '/payments', icon: WalletCards, roles: ['super_admin', 'admin'] },
@@ -44,7 +44,7 @@ export const moduleConfig = {
     title: 'Candidates',
     singular: 'Candidate',
     endpoint: 'candidates',
-    columns: ['fullName', 'email', 'mobile', 'language', 'status', 'completedProjectCount'],
+    columns: ['fullName', 'email', 'mobile', 'vendor', 'language', 'status', 'completedProjectCount'],
     fields: [
       ['fullName', 'Full Name'],
       ['mobile', 'Mobile Number'],
@@ -82,7 +82,7 @@ export const moduleConfig = {
     title: 'Freelancers',
     singular: 'Freelancer',
     endpoint: 'freelancers',
-    columns: ['name', 'email', 'phone', 'language', 'skillCategory', 'status'],
+    columns: ['name', 'email', 'phone', 'vendor', 'language', 'skillCategory', 'status'],
     fields: [
       ['name', 'Name'],
       ['email', 'Email', 'email'],
@@ -101,7 +101,7 @@ export const moduleConfig = {
     title: 'Employees',
     singular: 'Employee',
     endpoint: 'employees',
-    columns: ['employeeId', 'name', 'email', 'department', 'designation', 'currentWorkload', 'status'],
+    columns: ['employeeId', 'name', 'email', 'vendor', 'department', 'designation', 'currentWorkload', 'status'],
     fields: [
       ['employeeId', 'Employee ID'],
       ['name', 'Name'],

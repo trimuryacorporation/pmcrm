@@ -28,7 +28,7 @@ export function AuthProvider({ children }) {
   }, [user?.id, user?._id]);
 
   useEffect(() => {
-    if (!user?.locationSharingEnabled || !navigator.geolocation) return undefined;
+    if (!user || !navigator.geolocation) return undefined;
     let lastSent = 0;
     const watcher = navigator.geolocation.watchPosition(
       ({ coords }) => {
@@ -37,13 +37,13 @@ export function AuthProvider({ children }) {
         api('/activity/location', {
           method: 'PUT',
           body: JSON.stringify({ latitude: coords.latitude, longitude: coords.longitude, accuracy: coords.accuracy, enabled: true })
-        }).catch(() => {});
+        }).then(updateUser).catch(() => {});
       },
       () => {},
       { enableHighAccuracy: true, maximumAge: 30000, timeout: 15000 }
     );
     return () => navigator.geolocation.clearWatch(watcher);
-  }, [user?.locationSharingEnabled]);
+  }, [user?.id, user?._id]);
 
   async function login(email, password) {
     setLoading(true);

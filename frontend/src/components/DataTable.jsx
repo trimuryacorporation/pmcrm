@@ -18,6 +18,7 @@ function renderValue(row, key) {
     );
   }
   if (Array.isArray(value)) return value.length;
+  if (value && typeof value === 'object') return value.name || value.fullName || value.agencyName || '-';
   return value ?? '-';
 }
 

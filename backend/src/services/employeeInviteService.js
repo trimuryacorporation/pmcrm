@@ -1,7 +1,7 @@
 import crypto from 'crypto';
-import nodemailer from 'nodemailer';
 import { getCommunicationConfig } from '../config/communications.js';
 import User from '../models/User.js';
+import { createEmailClient } from './emailClient.js';
 
 function frontendUrl() {
   const configured = process.env.APP_URL || (process.env.CLIENT_URL || '').split(',').map((value) => value.trim()).find(Boolean);
@@ -46,15 +46,7 @@ export async function inviteEmployee(employee) {
       throw new Error('SMTP email settings are not configured');
     }
 
-    const transport = nodemailer.createTransport({
-      host: config.host,
-      port: Number(config.port),
-      secure: Boolean(config.secure),
-      auth: { user: config.user, pass: config.password },
-      connectionTimeout: 15000,
-      greetingTimeout: 10000,
-      socketTimeout: 20000
-    });
+    const transport = createEmailClient(config);
     const inviteUrl = `${frontendUrl()}/set-password?token=${rawToken}`;
     await transport.sendMail({
       from: config.from,
@@ -62,6 +54,7 @@ export async function inviteEmployee(employee) {
       subject: 'Set up your CRM account',
       text: `Hello ${employee.name},\n\nYour CRM account has been created. Set your password using this link:\n${inviteUrl}\n\nThis link expires in 24 hours and can only be used once.`
     });
+    transport.close();
   } catch (error) {
     if (createdUser && user) await User.findByIdAndDelete(user._id).catch(() => {});
     else if (user) {

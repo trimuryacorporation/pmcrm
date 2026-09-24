@@ -1,19 +1,13 @@
-import nodemailer from 'nodemailer';
 import DeliveryLog from '../models/DeliveryLog.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import { Employee, Freelancer, Vendor } from '../models/People.js';
 import { getCommunicationConfig } from '../config/communications.js';
+import { createEmailClient } from './emailClient.js';
 
 function emailTransport(config) {
   if (!config.enabled || !config.host || !config.user || !config.password) return null;
-  return nodemailer.createTransport({
-    host: config.host,
-    port: Number(config.port || 587),
-    secure: Boolean(config.secure),
-    pool: true,
-    auth: { user: config.user, pass: config.password }
-  });
+  return createEmailClient(config, { pool: true });
 }
 
 function whatsappNumber(phone, countryCode) {

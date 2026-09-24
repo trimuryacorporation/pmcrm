@@ -1,12 +1,8 @@
-import nodemailer from 'nodemailer';
 import SystemSetting from '../models/SystemSetting.js';
 import { getCommunicationConfig } from '../config/communications.js';
+import { createEmailClient } from '../services/emailClient.js';
 import { encrypt } from '../utils/encryption.js';
 import { writeAudit } from '../utils/audit.js';
-
-function transporter(email) {
-  return nodemailer.createTransport({ host: email.host, port: Number(email.port), secure: Boolean(email.secure), auth: { user: email.user, pass: email.password } });
-}
 
 function normalizePhone(phone, countryCode) {
   const digits = String(phone || '').replace(/\D/g, '');
@@ -61,7 +57,7 @@ export async function updateCommunicationSettings(req, res, next) {
 export async function testEmail(req, res, next) {
   try {
     const config = await getCommunicationConfig();
-    const client = transporter(config.email);
+    const client = createEmailClient(config.email);
     await client.verify();
     await client.sendMail({ from: config.email.from, to: req.body.to || req.user.email, subject: 'Trimurya CRM email test', text: 'Email notifications are configured successfully.' });
     client.close();

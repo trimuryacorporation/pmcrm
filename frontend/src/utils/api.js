@@ -46,6 +46,7 @@ async function download(path, fileName) {
 
 export const endpoints = {
   dashboard: () => api('/dashboard'),
+  updateProfile: (body) => api('/auth/profile', { method: 'PUT', body: JSON.stringify(body) }),
   administrators: () => api('/administrators'),
   createAdministrator: (body) => api('/administrators', { method: 'POST', body: JSON.stringify(body) }),
   updateAdministratorStatus: (id, isActive) => api(`/administrators/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),

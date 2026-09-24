@@ -44,8 +44,9 @@ export function createCrudController(Model, options = {}) {
     async create(req, res, next) {
       let item;
       try {
-        item = await Model.create(req.body);
-        await writeAudit(req, 'CREATE', options.resourceName || Model.modelName, item, req.body);
+        const data = options.prepareCreate ? await options.prepareCreate(req, req.body) : req.body;
+        item = await Model.create(data);
+        await writeAudit(req, 'CREATE', options.resourceName || Model.modelName, item, data);
         if (options.afterCreate && options.awaitAfterCreate) await options.afterCreate(item, req.user);
         else if (options.afterCreate) setImmediate(() => options.afterCreate(item, req.user).catch((error) => console.error(`Post-create action failed: ${error.message}`)));
         res.status(201).json(item);
@@ -56,7 +57,8 @@ export function createCrudController(Model, options = {}) {
     },
     async update(req, res, next) {
       try {
-        const item = await Model.findOneAndUpdate(scopeQuery(req, { _id: req.params.id }), req.body, {
+        const data = options.prepareUpdate ? await options.prepareUpdate(req, req.body) : req.body;
+        const item = await Model.findOneAndUpdate(scopeQuery(req, { _id: req.params.id }), data, {
           new: true,
           runValidators: true
         }).populate(populate);
@@ -64,7 +66,7 @@ export function createCrudController(Model, options = {}) {
           res.status(404);
           throw new Error('Record not found');
         }
-        await writeAudit(req, 'UPDATE', options.resourceName || Model.modelName, item, req.body);
+        await writeAudit(req, 'UPDATE', options.resourceName || Model.modelName, item, data);
         res.json(item);
       } catch (error) {
         next(error);

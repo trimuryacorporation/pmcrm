@@ -26,7 +26,7 @@ function duplicateKeyMessage(err) {
 
 export function errorHandler(err, req, res, next) {
   const duplicateMessage = duplicateKeyMessage(err);
-  const statusCode = duplicateMessage ? 409 : res.statusCode === 200 ? 500 : res.statusCode;
+  const statusCode = duplicateMessage ? 409 : err.statusCode || (res.statusCode === 200 ? 500 : res.statusCode);
   res.status(statusCode).json({
     message: duplicateMessage || err.message || 'Server error',
     errors: err.errors || undefined,
