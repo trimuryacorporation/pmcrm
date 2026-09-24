@@ -41,6 +41,10 @@ export default function ModulePage({ module }) {
       setEditing(null);
       load();
     } catch (error) {
+      if (error.status === 409) {
+        setEditing(null);
+        await load().catch(() => {});
+      }
       toast.error(error.message);
     }
   }

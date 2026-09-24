@@ -10,7 +10,7 @@ export async function api(path, options = {}) {
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers
   };
-  const response = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const response = await fetch(`${API_URL}${path}`, { cache: 'no-store', ...options, headers });
   const text = await response.text();
   let data = {};
   try {
@@ -18,7 +18,12 @@ export async function api(path, options = {}) {
   } catch {
     throw new Error('Server returned an invalid response');
   }
-  if (!response.ok) throw new Error(data.message || 'Request failed');
+  if (!response.ok) {
+    const error = new Error(data.message || 'Request failed');
+    error.status = response.status;
+    error.data = data;
+    throw error;
+  }
   return data;
 }
 

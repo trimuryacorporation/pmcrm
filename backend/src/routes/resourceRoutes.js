@@ -60,8 +60,6 @@ export const employeeRoutes = routerFor(createCrudController(Employee, {
   populate: 'assignedProjects',
   searchFields: ['name', 'employeeId'],
   afterCreate: inviteEmployee,
-  awaitAfterCreate: true,
-  rollbackOnAfterCreateError: true,
   userScope: (user) => (user.role === 'employee' ? { _id: user.linkedEmployee } : {})
 }), [
   body('employeeId').notEmpty(),

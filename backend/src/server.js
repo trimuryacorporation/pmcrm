@@ -45,7 +45,10 @@ const serviceStatus = (req, res) => res.json({
 
 app.get('/', serviceStatus);
 app.get('/health', serviceStatus);
-app.use('/api', apiRoutes);
+app.use('/api', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+}, apiRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
