@@ -31,6 +31,13 @@ const systemSettingSchema = new mongoose.Schema(
         countryCode: { type: String, default: '91' }
       },
       updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    },
+    portal: {
+      url: String,
+      companyName: String,
+      contactPerson: String,
+      email: String,
+      updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
     }
   },
   { timestamps: true }

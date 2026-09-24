@@ -17,6 +17,7 @@ import SetPassword from './pages/SetPassword.jsx';
 import ModulePage from './pages/ModulePage.jsx';
 import Payments from './pages/Payments.jsx';
 import Profile from './pages/Profile.jsx';
+import Portal from './pages/Portal.jsx';
 import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
 import Tasks from './pages/Tasks.jsx';
@@ -58,6 +59,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/activity" element={<Activity />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/portal" element={<Portal />} />
               <Route element={<ProtectedRoute roles={['super_admin']} />}>
                 <Route path="/administrators" element={<Administrators />} />
               </Route>

@@ -7,6 +7,7 @@ import { downloadProjectFile, uploadFiles } from '../controllers/uploadControlle
 import { heartbeat, listActivity, listDeliveries, listUsers, updateLocation } from '../controllers/activityController.js';
 import { getStorageSettings, testStorageSettings, updateStorageSettings } from '../controllers/settingsController.js';
 import { getCommunicationSettings, testEmail, testWhatsApp, updateCommunicationSettings } from '../controllers/communicationSettingsController.js';
+import { createPortal, listPortals } from '../controllers/portalController.js';
 import { protect } from '../middleware/auth.js';
 import { globalSearch } from '../controllers/searchController.js';
 import { authorize } from '../middleware/auth.js';
@@ -57,5 +58,6 @@ router.get('/settings/communications', protect, authorize('super_admin'), getCom
 router.put('/settings/communications', protect, authorize('super_admin'), updateCommunicationSettings);
 router.post('/settings/communications/test-email', protect, authorize('super_admin'), testEmail);
 router.post('/settings/communications/test-whatsapp', protect, authorize('super_admin'), testWhatsApp);
+router.route('/portals').get(protect, authorize('super_admin', 'admin'), listPortals).post(protect, authorize('super_admin'), createPortal);
 
 export default router;

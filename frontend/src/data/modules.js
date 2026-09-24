@@ -1,4 +1,4 @@
-import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users, WalletCards } from 'lucide-react';
+import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, ExternalLink, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users, WalletCards } from 'lucide-react';
 import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
@@ -14,6 +14,7 @@ export const navItems = [
   { label: 'Payments', path: '/payments', icon: WalletCards, roles: ['super_admin', 'admin'] },
   { label: 'Reports', path: '/reports', icon: CircleDollarSign, roles: ['super_admin', 'admin'] },
   { label: 'Activity', path: '/activity', icon: Activity, roles: ['super_admin', 'admin'] },
+  { label: 'Portal', path: '/portal', icon: ExternalLink, roles: ['super_admin', 'admin'] },
   { label: 'Administrators', path: '/administrators', icon: ShieldCheck, roles: ['super_admin'] },
   { label: 'Settings', path: '/settings', icon: Settings, roles: ['super_admin'] }
 ];

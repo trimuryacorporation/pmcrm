@@ -88,4 +88,9 @@ export const endpoints = {
   projectApplications: (projectId) => api(`/projects/${projectId}/applications`),
   report: (query) => api(`/reports?${new URLSearchParams(query)}`),
   downloadReport: (query) => download(`/reports?${new URLSearchParams({ ...query, format: 'csv' })}`, `${query.type}-report.csv`)
+  , portals: (query = {}) => {
+    const parameters = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined && value !== null && value !== ''));
+    return api(`/portals${parameters.size ? `?${parameters}` : ''}`);
+  }
+  , createPortal: (body) => api('/portals', { method: 'POST', body: JSON.stringify(body) })
 };
