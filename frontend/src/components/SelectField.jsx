@@ -5,7 +5,6 @@ export default function SelectField({ value = '', options = [], placeholder, onC
   const listId = useId();
   const buttonRef = useRef(null);
   const [open, setOpen] = useState(false);
-  const [opensUpward, setOpensUpward] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const normalizedOptions = useMemo(() => options.map((option) => (
     typeof option === 'object' ? option : { value: option, label: option }
@@ -14,17 +13,6 @@ export default function SelectField({ value = '', options = [], placeholder, onC
   const menuOptions = [{ value: '', label: placeholder }, ...normalizedOptions];
 
   function openMenu() {
-    const rect = buttonRef.current?.getBoundingClientRect();
-    if (rect) {
-      const scrollArea = buttonRef.current.closest('[data-modal-scroll]');
-      const scrollRect = scrollArea?.getBoundingClientRect();
-      const lowerBoundary = Math.min(window.innerHeight, scrollRect?.bottom || window.innerHeight);
-      const upperBoundary = Math.max(0, scrollRect?.top || 0);
-      const spaceBelow = lowerBoundary - rect.bottom;
-      const spaceAbove = rect.top - upperBoundary;
-      const menuHeight = Math.min(224, menuOptions.length * 36 + 8);
-      setOpensUpward(spaceBelow < menuHeight && spaceAbove > spaceBelow);
-    }
     const selectedIndex = menuOptions.findIndex((option) => option.value === value);
     setActiveIndex(Math.max(selectedIndex, 0));
     setOpen(true);
@@ -84,7 +72,7 @@ export default function SelectField({ value = '', options = [], placeholder, onC
         <div
           id={listId}
           role="listbox"
-          className={`scrollbar-thin absolute z-40 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl ${opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}
+          className="scrollbar-thin mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-sm"
         >
           {menuOptions.map((option, index) => (
             <button

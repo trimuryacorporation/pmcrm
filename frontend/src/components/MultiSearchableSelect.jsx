@@ -13,7 +13,6 @@ export default function MultiSearchableSelect({ value = [], options = [], placeh
   const selectedOptions = normalizedOptions.filter((option) => selectedValues.includes(option.value));
   const [query, setQuery] = useState('');
   const [open, setOpen] = useState(false);
-  const [opensUpward, setOpensUpward] = useState(false);
 
   useEffect(() => setQuery(''), [value]);
 
@@ -26,14 +25,6 @@ export default function MultiSearchableSelect({ value = [], options = [], placeh
   }, [normalizedOptions, query, selectedValues]);
 
   function openMenu() {
-    const rect = inputRef.current?.getBoundingClientRect();
-    if (rect) {
-      const scrollArea = inputRef.current.closest('[data-modal-scroll]');
-      const scrollRect = scrollArea?.getBoundingClientRect();
-      const spaceBelow = Math.min(window.innerHeight, scrollRect?.bottom || window.innerHeight) - rect.bottom;
-      const spaceAbove = rect.top - Math.max(0, scrollRect?.top || 0);
-      setOpensUpward(spaceBelow < 240 && spaceAbove > spaceBelow);
-    }
     setOpen(true);
   }
 
@@ -82,7 +73,7 @@ export default function MultiSearchableSelect({ value = [], options = [], placeh
         </div>
       </div>
       {open && (
-        <div id={listId} role="listbox" className={`scrollbar-thin absolute z-40 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl ${opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+        <div id={listId} role="listbox" className="scrollbar-thin mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-sm">
           {matches.map((option) => (
             <button key={option.value} type="button" role="option" className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-slate-700 hover:bg-indigo-50 hover:text-indigo-800" onMouseDown={(event) => event.preventDefault()} onClick={() => add(option)}>
               <Check className="h-4 w-4 text-transparent" />

@@ -17,7 +17,6 @@ export default function SearchableSelect({ value = '', options = [], placeholder
   const selected = normalizedOptions.find((option) => option.value === value);
   const [query, setQuery] = useState(selected?.label || value);
   const [open, setOpen] = useState(false);
-  const [opensUpward, setOpensUpward] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -50,16 +49,6 @@ export default function SearchableSelect({ value = '', options = [], placeholder
 
   function openMenu(queryValue) {
     if (!queryValue.trim()) return;
-    const rect = inputRef.current?.getBoundingClientRect();
-    if (rect) {
-      const scrollArea = inputRef.current.closest('[data-modal-scroll]');
-      const scrollRect = scrollArea?.getBoundingClientRect();
-      const lowerBoundary = Math.min(window.innerHeight, scrollRect?.bottom || window.innerHeight);
-      const upperBoundary = Math.max(0, scrollRect?.top || 0);
-      const spaceBelow = lowerBoundary - rect.bottom;
-      const spaceAbove = rect.top - upperBoundary;
-      setOpensUpward(spaceBelow < 240 && spaceAbove > spaceBelow);
-    }
     setOpen(true);
   }
 
@@ -103,7 +92,7 @@ export default function SearchableSelect({ value = '', options = [], placeholder
         onKeyDown={handleKeyDown}
       />
       {open && query.trim() && (
-        <div id={listId} role="listbox" className={`scrollbar-thin absolute z-40 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl ${opensUpward ? 'bottom-full mb-1' : 'top-full mt-1'}`}>
+        <div id={listId} role="listbox" className="scrollbar-thin mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-sm">
           {matches.map((option, index) => {
             const { group, name } = splitLabel(option.label);
             return (
