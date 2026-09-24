@@ -39,6 +39,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<ModulePage module="projects" />} />
               <Route path="/projects/:id" element={<DetailPage module="projects" />} />
+              <Route path="/clients" element={<ModulePage module="clients" />} />
+              <Route path="/clients/:id" element={<DetailPage module="clients" />} />
               <Route path="/candidates" element={<ModulePage module="candidates" />} />
               <Route path="/candidates/:id" element={<DetailPage module="candidates" />} />
               <Route path="/vendors" element={<ModulePage module="vendors" />} />

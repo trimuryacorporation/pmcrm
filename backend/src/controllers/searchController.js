@@ -1,4 +1,5 @@
 import Project from '../models/Project.js';
+import Client from '../models/Client.js';
 import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Invoice, Payment } from '../models/Finance.js';
 
@@ -29,17 +30,19 @@ export async function globalSearch(req, res, next) {
       Freelancer.find(queryFor(['name', 'email', 'phone', 'location'], search, freelancerScope)).limit(6).lean()
     ];
     if (isAdmin) requests.push(
+      Client.find(queryFor(['name', 'companyName', 'contactPerson', 'email', 'phone', 'location'], search)).limit(6).lean(),
       Employee.find(queryFor(['name', 'employeeId', 'email', 'phone'], search)).limit(6).lean(),
       Payment.find(queryFor(['payeeName', 'status', 'notes'], search)).limit(6).lean(),
       Invoice.find(queryFor(['invoiceNumber', 'payeeName', 'paymentStatus', 'notes'], search)).limit(6).lean()
     );
     const results = await Promise.all(requests);
-    const [projects, candidates, vendors, freelancers, employees = [], payments = [], invoices = []] = results;
+    const [projects, candidates, vendors, freelancers, clients = [], employees = [], payments = [], invoices = []] = results;
     const items = [
       ...projects.map((item) => ({ id: item._id, type: 'Project', title: item.name, subtitle: item.code || item.clientName, path: `/projects/${item._id}` })),
       ...candidates.map((item) => ({ id: item._id, type: 'Candidate', title: item.fullName, subtitle: item.email || item.mobile, path: `/candidates/${item._id}` })),
       ...vendors.map((item) => ({ id: item._id, type: 'Vendor', title: item.agencyName, subtitle: item.contactPerson || item.email, path: `/vendors/${item._id}` })),
       ...freelancers.map((item) => ({ id: item._id, type: 'Freelancer', title: item.name, subtitle: item.email || item.phone, path: `/freelancers/${item._id}` })),
+      ...clients.map((item) => ({ id: item._id, type: 'Client', title: item.name, subtitle: item.companyName || item.contactPerson || item.email, path: `/clients/${item._id}` })),
       ...employees.map((item) => ({ id: item._id, type: 'Employee', title: item.name, subtitle: item.employeeId || item.email, path: `/employees/${item._id}` })),
       ...payments.map((item) => ({ id: item._id, type: 'Payment', title: item.payeeName, subtitle: `${item.status} • ${item.amount}`, path: '/payments' })),
       ...invoices.map((item) => ({ id: item._id, type: 'Invoice', title: item.invoiceNumber, subtitle: `${item.payeeName} • ${item.paymentStatus}`, path: '/payments' }))

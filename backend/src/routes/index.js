@@ -14,6 +14,7 @@ import { upload } from '../middleware/upload.js';
 import {
   allocationRoutes,
   candidateRoutes,
+  clientRoutes,
   employeeRoutes,
   freelancerRoutes,
   invoiceRoutes,
@@ -31,6 +32,7 @@ router.get('/search', protect, globalSearch);
 router.use('/administrators', adminRoutes);
 router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee'), dashboard);
 router.use('/projects', projectRoutes);
+router.use('/clients', clientRoutes);
 router.use('/candidates', candidateRoutes);
 router.use('/vendors', vendorRoutes);
 router.use('/freelancers', freelancerRoutes);

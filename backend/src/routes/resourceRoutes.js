@@ -1,6 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import Project from '../models/Project.js';
+import Client from '../models/Client.js';
 import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Allocation, Task } from '../models/Work.js';
 import { Invoice, Payment } from '../models/Finance.js';
@@ -147,6 +148,10 @@ export const projectRoutes = routerFor(
 projectRoutes.post('/:id/applications', authorize('employee', 'vendor', 'freelancer'), applicationRules, validate, submitProjectApplication);
 projectRoutes.get('/:id/applications/mine', authorize('employee', 'vendor', 'freelancer'), getMyProjectApplication);
 projectRoutes.get('/:id/applications', authorize(...adminRoles), listProjectApplications);
+
+export const clientRoutes = routerFor(createCrudController(Client, {
+  searchFields: ['name', 'companyName', 'contactPerson', 'email', 'phone']
+}), [body('name').trim().notEmpty().withMessage('Client name is required')], { readRoles: adminRoles, writeRoles: adminRoles });
 
 export const candidateRoutes = routerFor(createCrudController(Candidate, {
   populate: 'assignedProject vendor ownerEmployee',
