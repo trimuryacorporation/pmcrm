@@ -21,6 +21,19 @@ const pakistanLanguages = [
   'Ushojo', 'Vaghri', 'Wakhi', 'Waneci', 'Waziri', 'Yidgha'
 ];
 
+// Major and regional Nigerian languages. The searchable worldwide ISO catalog below remains available too.
+const nigerianLanguages = [
+  'English', 'Nigerian Pidgin', 'Hausa', 'Yoruba', 'Igbo', 'Fulfulde', 'Kanuri', 'Tiv', 'Ibibio', 'Edo',
+  'Efik', 'Ijaw', 'Idoma', 'Igala', 'Ebira', 'Nupe', 'Gbagyi', 'Gbari', 'Jukun', 'Berom', 'Urhobo', 'Itsekiri',
+  'Isoko', 'Esan', 'Etsako', 'Owan', 'Ika', 'Ikwerre', 'Ekpeye', 'Etche', 'Okrika', 'Kalabari', 'Ogoni', 'Gokana',
+  'Khana', 'Eleme', 'Andoni', 'Oron', 'Anaang', 'Eket', 'Boki', 'Yala', 'Bekwarra', 'Mbembe', 'Ukelle', 'Ekoid',
+  'Bura-Pabir', 'Margi', 'Chibok', 'Bachama', 'Bata', 'Higi', 'Kilba', 'Lamang', 'Tera', 'Tangale', 'Waja',
+  'Dadiya', 'Tula', 'Kamo', 'Karekare', 'Ngas', 'Goemai', 'Mwaghavul', 'Ron', 'Tarok', 'Pyem', 'Mupun', 'Jara',
+  'Mambila', 'Kaka', 'Koma', 'Kuteb', 'Yandang', 'Mumuye', 'Jibu', 'Chamba', 'Bali', 'Fali', 'Mafa', 'Shuwa Arabic',
+  'Zarma', 'Dukkawa', 'Kamuku', 'Koro', 'Gade', 'Alago', 'Mada', 'Ningye', 'Amo', 'Atyap', 'Adara', 'Tyap',
+  'Ukaan', 'Irigwe', 'Izere', 'Hausa Sign Language', 'Nigerian Sign Language', 'Other Nigerian Language'
+];
+
 const indianLanguageNames = new Set(indianLanguages.map((name) => name.toLowerCase()));
 const internationalLanguages = ISO6391.getAllNames()
   .filter((name) => !indianLanguageNames.has(name.toLowerCase()))
@@ -29,6 +42,7 @@ const internationalLanguages = ISO6391.getAllNames()
 export const LANGUAGE_OPTIONS = [
   ...indianLanguages.map((name) => ({ value: name, label: `India - ${name}` })),
   ...pakistanLanguages.map((name) => ({ value: `Pakistan - ${name}`, label: `Pakistan - ${name}` })),
+  ...nigerianLanguages.map((name) => ({ value: `Nigeria - ${name}`, label: `Nigeria - ${name}` })),
   // ISO-639 includes languages used across every country, beyond the India and Pakistan lists above.
   ...internationalLanguages.map((name) => ({ value: name, label: `International / All Countries - ${name}` }))
 ];
