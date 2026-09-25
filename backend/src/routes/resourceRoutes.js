@@ -299,31 +299,21 @@ allocationRoutes.route('/').get(authorize(...employeeManagers), allocationContro
 allocationRoutes.route('/:id').get(authorize(...employeeManagers), allocationController.get).put(authorize(...adminRoles), allocationController.update).delete(authorize(...adminRoles), allocationController.remove);
 
 const taskController = createCrudController(Task, {
-  populate: 'folder project employee vendor freelancer candidate',
-  userScope: (user) => {
-    if (user.role === 'employee') return { employee: user.linkedEmployee };
-    if (user.role === 'vendor') return { vendor: user.linkedVendor };
-    if (user.role === 'freelancer') return { freelancer: user.linkedFreelancer };
-    return {};
-  }
+  populate: 'folder project employee vendor freelancer candidate'
 });
 export const taskFolderRoutes = routerFor(createCrudController(TaskFolder, {
   populate: 'project',
   searchFields: ['name'],
   prepareCreate: taskFolderData,
   prepareUpdate: taskFolderData
-}), [body('project').notEmpty().withMessage('Project is required')], { readRoles: employeeManagers, writeRoles: adminRoles });
+}), [body('project').notEmpty().withMessage('Project is required')], { readRoles: employeeManagers, writeRoles: employeeManagers });
 export const taskRoutes = express.Router();
 taskRoutes.use(protect);
-taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...adminRoles), [body('title').notEmpty(), body('folder').notEmpty()], validate, taskController.create);
+taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...employeeManagers), [body('title').notEmpty(), body('folder').notEmpty()], validate, taskController.create);
 taskRoutes.route('/:id')
   .get(authorize(...employeeManagers), taskController.get)
-  .put(authorize(...employeeManagers), (req, res, next) => {
-    if (adminRoles.includes(req.user.role)) return next();
-    req.body = Object.fromEntries(Object.entries(req.body).filter(([key]) => ['status', 'completionPercentage', 'comments'].includes(key)));
-    next();
-  }, taskController.update)
-  .delete(authorize(...adminRoles), taskController.remove);
+  .put(authorize(...employeeManagers), taskController.update)
+  .delete(authorize(...employeeManagers), taskController.remove);
 export const paymentRoutes = routerFor(createCrudController(Payment, { populate: 'project' }), [body('payeeName').notEmpty(), body('amount').isNumeric()], { readRoles: adminRoles });
 export const invoiceRoutes = routerFor(createCrudController(Invoice, { populate: 'project' }), [
   body('invoiceNumber').notEmpty(),

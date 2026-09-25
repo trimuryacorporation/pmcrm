@@ -22,6 +22,31 @@ body {
   border-radius: 999px;
 }
 
+.sidebar-scrollbar {
+  scrollbar-color: #475569 transparent;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 10px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 10px 0;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: #475569;
+  border: 3px solid #020617;
+  border-radius: 999px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #818cf8;
+}
+
 @layer components {
   .card {
     @apply rounded-lg border border-slate-200 bg-white shadow-soft;
@@ -37,5 +62,9 @@ body {
 
   .btn-secondary {
     @apply inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50;
+  }
+
+  .sidebar-scrollbar {
+    @apply overscroll-contain scroll-smooth;
   }
 }

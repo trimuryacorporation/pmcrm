@@ -22,6 +22,7 @@ import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
 import Tasks from './pages/Tasks.jsx';
 import Activity from './pages/Activity.jsx';
+import EmployeeActivity from './pages/EmployeeActivity.jsx';
 import Administrators from './pages/Administrators.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
@@ -57,6 +58,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/payments/invoice/:id" element={<DetailPage module="financeInvoices" />} />
               <Route path="/reports" element={<Reports />} />
               <Route path="/activity" element={<Activity />} />
+              <Route path="/employee-activity" element={<EmployeeActivity />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/portal" element={<Portal />} />

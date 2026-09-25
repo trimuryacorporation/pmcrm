@@ -2,21 +2,22 @@ import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, Extern
 import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, roles: ['super_admin', 'admin', 'employee'] },
-  { label: 'Projects', path: '/projects', icon: Briefcase, roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
-  { label: 'Clients', path: '/clients', icon: Building2, roles: ['super_admin', 'admin'] },
-  { label: 'Candidates', path: '/candidates', icon: UserCheck, roles: ['super_admin', 'admin', 'employee', 'candidate'] },
-  { label: 'Vendors', path: '/vendors', icon: Building2, roles: ['super_admin', 'admin', 'employee'] },
-  { label: 'Freelancers', path: '/freelancers', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
-  { label: 'Employees', path: '/employees', icon: Users, roles: ['super_admin', 'admin', 'employee'] },
-  { label: 'Allocation', path: '/allocation', icon: ClipboardList, roles: ['super_admin', 'admin', 'employee'] },
-  { label: 'Tasks', path: '/tasks', icon: ClipboardList, roles: ['super_admin', 'admin', 'employee'] },
-  { label: 'Payments', path: '/payments', icon: WalletCards, roles: ['super_admin', 'admin'] },
-  { label: 'Reports', path: '/reports', icon: CircleDollarSign, roles: ['super_admin', 'admin'] },
-  { label: 'Activity', path: '/activity', icon: Activity, roles: ['super_admin', 'admin'] },
-  { label: 'Portal', path: '/portal', icon: ExternalLink, roles: ['super_admin', 'admin'] },
-  { label: 'Administrators', path: '/administrators', icon: ShieldCheck, roles: ['super_admin'] },
-  { label: 'Settings', path: '/settings', icon: Settings, roles: ['super_admin'] }
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, section: 'Workspace', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Projects', path: '/projects', icon: Briefcase, section: 'Operations', roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
+  { label: 'Tasks', path: '/tasks', icon: ClipboardList, section: 'Operations', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Allocation', path: '/allocation', icon: ClipboardList, section: 'Operations', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Clients', path: '/clients', icon: Building2, section: 'People', roles: ['super_admin', 'admin'] },
+  { label: 'Candidates', path: '/candidates', icon: UserCheck, section: 'People', roles: ['super_admin', 'admin', 'employee', 'candidate'] },
+  { label: 'Vendors', path: '/vendors', icon: Building2, section: 'People', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Freelancers', path: '/freelancers', icon: Users, section: 'People', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Employees', path: '/employees', icon: Users, section: 'People', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Payments', path: '/payments', icon: WalletCards, section: 'Finance & Reports', roles: ['super_admin', 'admin'] },
+  { label: 'Reports', path: '/reports', icon: CircleDollarSign, section: 'Finance & Reports', roles: ['super_admin', 'admin'] },
+  { label: 'Employee Activity', path: '/employee-activity', icon: Activity, section: 'Administration', roles: ['super_admin', 'admin'] },
+  { label: 'Activity', path: '/activity', icon: Activity, section: 'Administration', roles: ['super_admin', 'admin'] },
+  { label: 'Portal', path: '/portal', icon: ExternalLink, section: 'Administration', roles: ['super_admin', 'admin'] },
+  { label: 'Administrators', path: '/administrators', icon: ShieldCheck, section: 'Administration', roles: ['super_admin'] },
+  { label: 'Settings', path: '/settings', icon: Settings, section: 'Administration', roles: ['super_admin'] }
 ];
 
 export const moduleConfig = {

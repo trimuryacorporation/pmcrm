@@ -66,3 +66,15 @@ export async function listDeliveries(req, res, next) {
     next(error);
   }
 }
+
+export async function listEmployeeActivity(req, res, next) {
+  try {
+    const items = await AuditLog.find({ role: 'employee' })
+      .populate({ path: 'user', select: 'name email linkedEmployee', populate: { path: 'linkedEmployee', select: 'employeeId' } })
+      .sort({ occurredAt: -1 })
+      .limit(500);
+    res.json({ items });
+  } catch (error) {
+    next(error);
+  }
+}

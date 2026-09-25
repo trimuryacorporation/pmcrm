@@ -65,6 +65,7 @@ export const endpoints = {
     return api('/uploads', { method: 'POST', body });
   },
   activity: () => api('/activity'),
+  employeeActivity: () => api('/employee-activity'),
   activeUsers: () => api('/activity/users'),
   deliveryLogs: () => api('/activity/deliveries'),
   updateLocation: (body) => api('/activity/location', { method: 'PUT', body: JSON.stringify(body) }),

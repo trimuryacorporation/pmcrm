@@ -33,7 +33,7 @@ export default function Tasks() {
   const [deleting, setDeleting] = useState(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const { user } = useAuth();
-  const canManage = ['super_admin', 'admin'].includes(user?.role);
+  const canManage = ['super_admin', 'admin', 'employee'].includes(user?.role);
   const references = useReferenceOptions(canManage ? ['projects', 'employees', 'vendors', 'freelancers', 'candidates'] : []);
 
   async function load() {
