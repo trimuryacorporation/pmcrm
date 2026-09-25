@@ -7,6 +7,7 @@ import ProtectedRoute from './components/ProtectedRoute.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import './index.css';
 import Allocation from './pages/Allocation.jsx';
+import AllocationDetail from './pages/AllocationDetail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import DetailPage from './pages/DetailPage.jsx';
 import Login from './pages/Login.jsx';
@@ -24,6 +25,7 @@ import Tasks from './pages/Tasks.jsx';
 import Activity from './pages/Activity.jsx';
 import EmployeeActivity from './pages/EmployeeActivity.jsx';
 import Administrators from './pages/Administrators.jsx';
+import ApiAccess from './pages/ApiAccess.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -52,6 +54,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/employees" element={<ModulePage module="employees" />} />
               <Route path="/employees/:id" element={<DetailPage module="employees" />} />
               <Route path="/allocation" element={<Allocation />} />
+              <Route path="/allocation/:id" element={<AllocationDetail />} />
               <Route path="/tasks" element={<Tasks />} />
               <Route path="/payments" element={<Payments />} />
               <Route path="/payments/payment/:id" element={<DetailPage module="financePayments" />} />
@@ -64,6 +67,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/portal" element={<Portal />} />
               <Route element={<ProtectedRoute roles={['super_admin']} />}>
                 <Route path="/administrators" element={<Administrators />} />
+                <Route path="/api-access" element={<ApiAccess />} />
               </Route>
             </Route>
           </Route>

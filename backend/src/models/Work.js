@@ -13,6 +13,8 @@ const allocationSchema = new mongoose.Schema(
     vendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
     freelancer: { type: mongoose.Schema.Types.ObjectId, ref: 'Freelancer' },
     candidate: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate' },
+    languages: [{ type: String, trim: true }],
+    languageTeamCounts: [{ language: String, teamCount: { type: Number, min: 0, default: 0 } }],
     assignmentDate: { type: Date, default: Date.now },
     role: { type: String, enum: ['Project Manager', 'Team Lead', 'Recruiter', 'Annotator', 'Transcriber', 'Reviewer', 'Vendor Partner'], default: 'Annotator' },
     workStatus: { type: String, enum: ['Assigned', 'In Progress', 'Review', 'Completed', 'Paused'], default: 'Assigned' },

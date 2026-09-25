@@ -6,6 +6,7 @@ import MultiSearchableSelect from './MultiSearchableSelect.jsx';
 import LanguageTeamCounts from './LanguageTeamCounts.jsx';
 import SelectedLanguageTeamCounts from './SelectedLanguageTeamCounts.jsx';
 import TaskAssigneeSelect from './TaskAssigneeSelect.jsx';
+import AllocationPeopleSelect from './AllocationPeopleSelect.jsx';
 
 export default function ModalForm({ title, fields, initial, onClose, onSubmit, requiredFields }) {
   const titleId = useId();
@@ -31,6 +32,9 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
         ['employee', 'vendor', 'freelancer', 'candidate'].forEach((field) => { delete next[field]; });
         delete next.languageTeamCounts;
       }
+      if (name === 'personType') {
+        ['employee', 'vendor', 'freelancer', 'candidate'].forEach((field) => { delete next[field]; });
+      }
       if (['vendor', 'freelancer'].includes(name)) delete next.languageTeamCounts;
       return next;
     });
@@ -44,6 +48,17 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
       const next = { ...current, [field]: value };
       ['employee', 'vendor', 'freelancer', 'candidate'].filter((key) => key !== field).forEach((key) => { delete next[key]; });
       delete next.languageTeamCounts;
+      return next;
+    });
+  }
+
+  function setAllocationPeople(value) {
+    const fieldByType = { Employee: 'employee', Vendor: 'vendor', Freelancer: 'freelancer', Candidate: 'candidate' };
+    const field = fieldByType[form.personType];
+    if (!field) return;
+    setForm((current) => {
+      const next = { ...current, [field]: value };
+      ['employee', 'vendor', 'freelancer', 'candidate'].filter((key) => key !== field).forEach((key) => { delete next[key]; });
       return next;
     });
   }
@@ -107,6 +122,8 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
                 <SelectedLanguageTeamCounts languages={form.languages} assignedToType={form.assignedToType} form={form} references={options} value={form[name]} onChange={(value) => setValue(name, value)} />
               ) : type === 'taskAssignee' ? (
                 <TaskAssigneeSelect assignedToType={form.assignedToType} form={form} references={options} onChange={setTaskAssignee} />
+              ) : type === 'allocationPeople' ? (
+                <AllocationPeopleSelect personType={form.personType} form={form} references={options} onChange={setAllocationPeople} />
               ) : type === 'select' ? (
                 <SelectField value={fieldValue(name, type)} options={fieldOptions(options)} placeholder={`Select ${label}`} invalid={Boolean(errors[name])} onChange={(value) => setValue(name, value)} />
               ) : type === 'file' ? (

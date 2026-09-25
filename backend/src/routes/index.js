@@ -11,6 +11,9 @@ import { createPortal, listPortals } from '../controllers/portalController.js';
 import { protect } from '../middleware/auth.js';
 import { globalSearch } from '../controllers/searchController.js';
 import { authorize } from '../middleware/auth.js';
+import { body } from 'express-validator';
+import { createApiKey, listApiKeys, revokeApiKey } from '../controllers/apiAccessController.js';
+import { validate } from '../middleware/validate.js';
 import { upload } from '../middleware/upload.js';
 import {
   allocationRoutes,
@@ -29,7 +32,39 @@ import {
 
 const router = express.Router();
 
+function mountPath(layer) {
+  if (layer.regexp?.fast_slash) return '';
+  const source = layer.regexp?.source || '';
+  const start = '^\\/';
+  const end = '\\/?(?=\\/|$)$';
+  if (!source.startsWith(start) || !source.endsWith(end)) return '';
+  return `/${source.slice(start.length, -end.length).replace(/\\\//g, '/')}`;
+}
+
+function collectEndpoints(currentRouter, prefix = '') {
+  return currentRouter.stack.flatMap((layer) => {
+    if (layer.route) {
+      return Object.keys(layer.route.methods)
+        .filter((method) => method !== '_all')
+        .map((method) => ({ method: method.toUpperCase(), path: `${prefix}${layer.route.path}`.replace(/\/\/{2,}/g, '/') }));
+    }
+    if (layer.handle?.stack) return collectEndpoints(layer.handle, `${prefix}${mountPath(layer)}`);
+    return [];
+  });
+}
+
 router.use('/auth', authRoutes);
+router.get('/api-access/endpoints', protect, authorize('super_admin'), (req, res) => {
+  const items = collectEndpoints(router, '/api')
+    .filter((item) => !item.path.includes('/api-access/endpoints'))
+    .sort((a, b) => a.path.localeCompare(b.path) || a.method.localeCompare(b.method));
+  const baseUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  res.json({ baseUrl, authentication: 'Send x-api-key: YOUR_API_KEY with every request.', items });
+});
+router.route('/api-access/keys')
+  .get(protect, authorize('super_admin'), listApiKeys)
+  .post(protect, authorize('super_admin'), [body('name').trim().notEmpty().withMessage('Key name is required'), body('role').optional().isIn(['super_admin', 'admin'])], validate, createApiKey);
+router.patch('/api-access/keys/:id/revoke', protect, authorize('super_admin'), revokeApiKey);
 router.get('/search', protect, globalSearch);
 router.use('/administrators', adminRoutes);
 router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee', 'candidate'), dashboard);

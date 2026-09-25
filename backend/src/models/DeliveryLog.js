@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const deliveryLogSchema = new mongoose.Schema(
   {
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', index: true },
-    recipientType: { type: String, enum: ['Employee', 'Vendor', 'Freelancer'], required: true },
+    recipientType: { type: String, enum: ['Employee', 'Vendor', 'Freelancer', 'Candidate'], required: true },
     recipientId: mongoose.Schema.Types.ObjectId,
     recipientName: String,
     channel: { type: String, enum: ['email', 'whatsapp'], required: true },

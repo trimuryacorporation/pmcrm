@@ -11,7 +11,7 @@ import User from '../models/User.js';
 import { authorize, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createCrudController } from '../controllers/crudController.js';
-import { createAllocation } from '../controllers/allocationController.js';
+import { createAllocation, sendAllocationEmail } from '../controllers/allocationController.js';
 import { notifyProjectCreated } from '../services/projectNotificationService.js';
 import { inviteCandidate, inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 import { ensureUniquePersonContact } from '../services/personContactService.js';
@@ -296,6 +296,7 @@ const allocationController = createCrudController(Allocation, {
 export const allocationRoutes = express.Router();
 allocationRoutes.use(protect);
 allocationRoutes.route('/').get(authorize(...employeeManagers), allocationController.list).post(authorize(...adminRoles), createAllocation);
+allocationRoutes.post('/:id/send-email', authorize(...adminRoles), sendAllocationEmail);
 allocationRoutes.route('/:id').get(authorize(...employeeManagers), allocationController.get).put(authorize(...adminRoles), allocationController.update).delete(authorize(...adminRoles), allocationController.remove);
 
 const taskController = createCrudController(Task, {

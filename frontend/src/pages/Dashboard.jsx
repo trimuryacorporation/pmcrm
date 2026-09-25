@@ -1,4 +1,4 @@
-import { Activity, Briefcase, Building2, CheckCircle2, Clock3, IndianRupee, KeyRound, Mail, UserCheck, Users, X } from 'lucide-react';
+import { Activity, Briefcase, Building2, CheckCircle2, Clock3, IndianRupee, KeyRound, Mail, RefreshCw, UserCheck, Users, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { Link } from 'react-router-dom';
@@ -9,6 +9,7 @@ import StatusBadge from '../components/StatusBadge.jsx';
 import { endpoints } from '../utils/api.js';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
+import ProjectApplicantsModal from '../components/ProjectApplicantsModal.jsx';
 
 const palette = ['#2563eb', '#4f46e5', '#7c3aed', '#14b8a6', '#f97316'];
 
@@ -16,11 +17,30 @@ export default function Dashboard() {
   const [data, setData] = useState(null);
   const [passwordStatus, setPasswordStatus] = useState('');
   const [sendingInviteId, setSendingInviteId] = useState('');
+  const [selectedProjectApplicants, setSelectedProjectApplicants] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const { user } = useAuth();
 
+  async function loadDashboard() {
+    const response = await endpoints.dashboard();
+    setData(response);
+  }
+
   useEffect(() => {
-    endpoints.dashboard().then(setData);
+    loadDashboard();
   }, []);
+
+  async function refreshDashboard() {
+    setRefreshing(true);
+    try {
+      await loadDashboard();
+      toast.success('Dashboard refreshed');
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setRefreshing(false);
+    }
+  }
 
   if (!data) return <Loading />;
   const cards = data.cards || {};
@@ -30,6 +50,15 @@ export default function Dashboard() {
   const passwordSetup = data.passwordSetup || { summary: [], records: [] };
   const selectedPasswordRecords = passwordSetup.records.filter((item) => item.status === passwordStatus);
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
+  const applicantsByProject = (data.projectApplications || []).reduce((groups, application) => {
+    const project = application.project;
+    if (!project?._id) return groups;
+    const id = String(project._id);
+    if (!groups[id]) groups[id] = { project, applications: [] };
+    groups[id].applications.push(application);
+    return groups;
+  }, {});
+  const projectApplicantGroups = Object.values(applicantsByProject);
 
   async function sendSetupEmail(person) {
     if (!person.profileId) return toast.error('This account is not linked to a person profile.');
@@ -48,7 +77,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <PageHeader title="Enterprise Dashboard">Live operational analytics from MongoDB across projects, people, workload, deadlines, and payments.</PageHeader>
+      <PageHeader title="Enterprise Dashboard" action={<button className="btn-secondary" disabled={refreshing} onClick={refreshDashboard}><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />{refreshing ? 'Refreshing...' : 'Refresh'}</button>}>Live operational analytics from MongoDB across projects, people, workload, deadlines, and payments.</PageHeader>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Total Projects" value={cards.totalProjects} icon={Briefcase} to="/projects" />
         <StatCard label="Live Projects" value={cards.activeProjects} icon={Activity} accent="from-emerald-500 to-teal-600" to="/projects?status=Live" />
@@ -65,6 +94,11 @@ export default function Dashboard() {
         <div className="grid gap-3 sm:grid-cols-3">
           {passwordSetup.summary.map((item) => <button key={item.status} type="button" onClick={() => setPasswordStatus(item.status)} className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${item.status === 'Password set' ? 'border-emerald-200 bg-emerald-50' : item.status === 'Setup pending' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}><p className="text-sm font-semibold text-slate-700">{item.status}</p><p className="mt-2 text-3xl font-black text-slate-950">{item.count}</p><p className="mt-1 text-xs font-semibold text-indigo-600">View people →</p></button>)}
         </div>
+      </div>}
+
+      {isAdmin && <div className="card mt-6 p-5">
+        <div className="mb-4 flex items-center justify-between gap-3"><div><h3 className="font-bold text-slate-950">Project Applications</h3><p className="mt-1 text-sm text-slate-500">See who applied to each project. Click a project to view applicant details.</p></div><span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">{data.projectApplications?.length || 0} total</span></div>
+        {projectApplicantGroups.length ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{projectApplicantGroups.map(({ project, applications }) => <button key={project._id} type="button" onClick={() => setSelectedProjectApplicants({ project, applications })} className="rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-slate-900">{project.name}</p><p className="mt-1 text-xs font-semibold text-indigo-600">{project.code || 'Project'}</p></div><span className="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-bold text-indigo-700">{applications.length} applied</span></div><div className="mt-4 flex -space-x-1.5 overflow-hidden">{applications.slice(0, 5).map((application) => <span key={application._id} title={application.applicant?.name || application.applicant?.email || 'Applicant'} className="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold text-slate-700">{(application.applicant?.name || application.applicant?.email || '?').slice(0, 1).toUpperCase()}</span>)}{applications.length > 5 && <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-indigo-600 text-[10px] font-bold text-white">+{applications.length - 5}</span>}</div><p className="mt-3 text-xs font-semibold text-indigo-700">View applicants →</p></button>)}</div> : <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">No project applications received yet.</p>}
       </div>}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.5fr_1fr]">
@@ -182,6 +216,7 @@ export default function Dashboard() {
         </div>
       </div>
       {passwordStatus && <PasswordStatusModal status={passwordStatus} records={selectedPasswordRecords} sendingInviteId={sendingInviteId} onSendSetupEmail={sendSetupEmail} onClose={() => setPasswordStatus('')} />}
+      {selectedProjectApplicants && <ProjectApplicantsModal applications={selectedProjectApplicants.applications} onClose={() => setSelectedProjectApplicants(null)} />}
     </>
   );
 }

@@ -3,6 +3,7 @@ import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Task } from '../models/Work.js';
 import { Payment } from '../models/Finance.js';
 import User from '../models/User.js';
+import ProjectApplication from '../models/ProjectApplication.js';
 
 function aggregateLanguages(Model, field) {
   return Model.aggregate([
@@ -57,7 +58,8 @@ export async function dashboard(req, res, next) {
       paidPayments,
       tasks,
       languageGroups,
-      passwordSetupUsers
+      passwordSetupUsers,
+      projectApplications
     ] = await Promise.all([
       Project.countDocuments(projectFilter),
       Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }),
@@ -93,6 +95,21 @@ export async function dashboard(req, res, next) {
           .populate('linkedVendor', 'agencyName contactPerson')
           .populate('linkedFreelancer', 'name')
           .populate('linkedCandidate', 'fullName')
+          .lean()
+        : Promise.resolve([]),
+      isAdmin
+        ? ProjectApplication.find()
+          .populate('project', 'name code')
+          .populate({
+            path: 'applicant',
+            select: 'name email role linkedEmployee linkedVendor linkedFreelancer',
+            populate: [
+              { path: 'linkedEmployee' },
+              { path: 'linkedVendor' },
+              { path: 'linkedFreelancer' }
+            ]
+          })
+          .sort({ createdAt: -1 })
           .lean()
         : Promise.resolve([])
     ]);
@@ -146,6 +163,7 @@ export async function dashboard(req, res, next) {
       monthlyProjects,
       languageSummary,
       passwordSetup: { summary: passwordSetupSummary, records: passwordSetupRecords },
+      projectApplications,
       upcomingDeadlines,
       recentActivities: recentProjects.map((project) => ({
         title: `${project.name} updated`,

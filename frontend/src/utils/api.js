@@ -51,6 +51,10 @@ export const endpoints = {
   administrators: () => api('/administrators'),
   createAdministrator: (body) => api('/administrators', { method: 'POST', body: JSON.stringify(body) }),
   updateAdministratorStatus: (id, isActive) => api(`/administrators/${id}/status`, { method: 'PATCH', body: JSON.stringify({ isActive }) }),
+  apiEndpoints: () => api('/api-access/endpoints'),
+  apiKeys: () => api('/api-access/keys'),
+  createApiKey: (body) => api('/api-access/keys', { method: 'POST', body: JSON.stringify(body) }),
+  revokeApiKey: (id) => api(`/api-access/keys/${id}/revoke`, { method: 'PATCH' }),
   list: (resource, query = {}) => {
     const parameters = new URLSearchParams(Object.entries(query).filter(([, value]) => value !== undefined && value !== null && value !== ''));
     return api(`/${resource}${parameters.size ? `?${parameters}` : ''}`);
@@ -84,6 +88,7 @@ export const endpoints = {
   resetPassword: (token, password) => api('/auth/reset-password', { method: 'POST', body: JSON.stringify({ token, password }) }),
   onboard: (body) => api('/auth/onboard', { method: 'POST', body: JSON.stringify(body) }),
   inviteEmployee: (id) => api(`/employees/${id}/invite`, { method: 'POST' }),
+  sendAllocationEmail: (id) => api(`/allocations/${id}/send-email`, { method: 'POST' }),
   invitePerson: (resource, id) => api(`/${resource}/${id}/invite`, { method: 'POST' }),
   applyToProject: (projectId, answers) => api(`/projects/${projectId}/applications`, { method: 'POST', body: JSON.stringify({ answers }) }),
   myProjectApplication: (projectId) => api(`/projects/${projectId}/applications/mine`),

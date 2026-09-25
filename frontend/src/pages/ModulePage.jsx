@@ -23,6 +23,7 @@ export default function ModulePage({ module }) {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const [exporting, setExporting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [searchParams] = useSearchParams();
   const languageFilter = searchParams.get('language');
   const statusFilter = searchParams.get('status');
@@ -50,6 +51,18 @@ export default function ModulePage({ module }) {
     });
     setRows(data.items || []);
     setPagination({ total: data.total || 0, pages: data.pages || 1 });
+  }
+
+  async function refresh() {
+    setRefreshing(true);
+    try {
+      await load();
+      toast.success(`${config.title} refreshed`);
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setRefreshing(false);
+    }
   }
 
   useEffect(() => {
@@ -160,9 +173,9 @@ export default function ModulePage({ module }) {
         title={config.title}
         action={
           <div className="flex gap-2">
-            <button className="btn-secondary" onClick={load}>
-              <RefreshCw className="h-4 w-4" />
-              Refresh
+            <button className="btn-secondary" disabled={refreshing} onClick={refresh}>
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
             {canManage && <button className="btn-primary" onClick={() => setEditing({})}>
               <Plus className="h-4 w-4" />
