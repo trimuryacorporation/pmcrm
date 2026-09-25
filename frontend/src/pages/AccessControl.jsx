@@ -10,7 +10,7 @@ const roles = [
   ['super_admin', 'Super Admin'], ['admin', 'Admin'], ['employee', 'Employee'], ['vendor', 'Vendor'], ['freelancer', 'Freelancer'], ['candidate', 'Candidate']
 ];
 const permissionModules = [
-  ['projects', 'Projects'], ['clients', 'Clients'], ['candidates', 'Candidates'], ['vendors', 'Vendors'], ['freelancers', 'Freelancers'], ['employees', 'Employees'], ['allocation', 'Allocation'], ['tasks', 'Tasks'], ['payments', 'Payments']
+  ['projects', 'Projects'], ['project-applications', 'Project Applications'], ['clients', 'Clients'], ['candidates', 'Candidates'], ['vendors', 'Vendors'], ['freelancers', 'Freelancers'], ['employees', 'Employees'], ['allocation', 'Allocation'], ['tasks', 'Tasks'], ['payments', 'Payments']
 ];
 const actions = ['view', 'create', 'edit', 'delete'];
 

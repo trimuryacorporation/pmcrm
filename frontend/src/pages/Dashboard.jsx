@@ -50,6 +50,7 @@ export default function Dashboard() {
   const passwordSetup = data.passwordSetup || { summary: [], records: [] };
   const selectedPasswordRecords = passwordSetup.records.filter((item) => item.status === passwordStatus);
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
+  const canViewProjectApplications = isAdmin || Boolean(user?.accessPermissions?.['project-applications']?.view);
   const applicantsByProject = (data.projectApplications || []).reduce((groups, application) => {
     const project = application.project;
     if (!project?._id) return groups;
@@ -96,7 +97,7 @@ export default function Dashboard() {
         </div>
       </div>}
 
-      {isAdmin && <div className="card mt-6 p-5">
+      {canViewProjectApplications && <div className="card mt-6 p-5">
         <div className="mb-4 flex items-center justify-between gap-3"><div><h3 className="font-bold text-slate-950">Project Applications</h3><p className="mt-1 text-sm text-slate-500">See who applied to each project. Click a project to view applicant details.</p></div><span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-bold text-indigo-700">{data.projectApplications?.length || 0} total</span></div>
         {projectApplicantGroups.length ? <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">{projectApplicantGroups.map(({ project, applications }) => <button key={project._id} type="button" onClick={() => setSelectedProjectApplicants({ project, applications })} className="rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:border-indigo-300 hover:bg-indigo-50 hover:shadow-sm"><div className="flex items-start justify-between gap-3"><div className="min-w-0"><p className="truncate font-bold text-slate-900">{project.name}</p><p className="mt-1 text-xs font-semibold text-indigo-600">{project.code || 'Project'}</p></div><span className="shrink-0 rounded-full bg-indigo-100 px-2.5 py-1 text-xs font-bold text-indigo-700">{applications.length} applied</span></div><div className="mt-4 flex -space-x-1.5 overflow-hidden">{applications.slice(0, 5).map((application) => <span key={application._id} title={application.applicant?.name || application.applicant?.email || 'Applicant'} className="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-slate-200 text-[10px] font-bold text-slate-700">{(application.applicant?.name || application.applicant?.email || '?').slice(0, 1).toUpperCase()}</span>)}{applications.length > 5 && <span className="grid h-7 w-7 place-items-center rounded-full border-2 border-white bg-indigo-600 text-[10px] font-bold text-white">+{applications.length - 5}</span>}</div><p className="mt-3 text-xs font-semibold text-indigo-700">View applicants →</p></button>)}</div> : <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">No project applications received yet.</p>}
       </div>}

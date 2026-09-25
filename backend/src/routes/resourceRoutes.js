@@ -158,7 +158,7 @@ export const projectRoutes = routerFor('projects',
 );
 projectRoutes.post('/:id/applications', authorize('employee', 'vendor', 'freelancer'), applicationRules, validate, submitProjectApplication);
 projectRoutes.get('/:id/applications/mine', authorize('employee', 'vendor', 'freelancer'), getMyProjectApplication);
-projectRoutes.get('/:id/applications', authorize(...adminRoles), listProjectApplications);
+projectRoutes.get('/:id/applications', authorizeResource('project-applications', 'view', ...adminRoles), listProjectApplications);
 
 export const clientRoutes = routerFor('clients', createCrudController(Client, {
   searchFields: ['name', 'companyName', 'contactPerson', 'email', 'phone']

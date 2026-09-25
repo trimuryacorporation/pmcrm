@@ -27,6 +27,8 @@ function aggregateLanguages(Model, field) {
 export async function dashboard(req, res, next) {
   try {
     const isAdmin = ['super_admin', 'admin'].includes(req.user.role);
+    const applicationPermission = req.user.accessPermissions?.get ? req.user.accessPermissions.get('project-applications') : req.user.accessPermissions?.['project-applications'];
+    const canViewProjectApplications = isAdmin || Boolean(applicationPermission?.view);
     const projectFilter = isAdmin ? {} : req.user.role === 'employee'
       ? { employees: req.user.linkedEmployee }
       : req.user.role === 'vendor'
@@ -97,7 +99,7 @@ export async function dashboard(req, res, next) {
           .populate('linkedCandidate', 'fullName')
           .lean()
         : Promise.resolve([]),
-      isAdmin
+      canViewProjectApplications
         ? ProjectApplication.find()
           .populate('project', 'name code')
           .populate({
