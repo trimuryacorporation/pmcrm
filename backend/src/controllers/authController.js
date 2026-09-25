@@ -6,6 +6,7 @@ import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { clientIp, writeAudit } from '../utils/audit.js';
 import { getCommunicationConfig } from '../config/communications.js';
 import { createEmailClient } from '../services/emailClient.js';
+import { notifyAdmins } from '../services/adminNotificationService.js';
 
 function signToken(user) {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -107,6 +108,7 @@ export async function register(req, res, next) {
       throw new Error('Email already exists');
     }
     const user = await User.create(req.body);
+    notifyAdmins(req, 'CREATE', 'User', user).catch((error) => console.error(`Notification failed: ${error.message}`));
     res.status(201);
     sendUser(res, user);
   } catch (error) {

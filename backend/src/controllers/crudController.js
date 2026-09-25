@@ -1,4 +1,5 @@
 import { writeAudit } from '../utils/audit.js';
+import { notifyAdmins } from '../services/adminNotificationService.js';
 
 function escapeRegex(value) {
   return String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -69,6 +70,7 @@ export function createCrudController(Model, options = {}) {
         const data = options.prepareCreate ? await options.prepareCreate(req, req.body) : req.body;
         item = await Model.create(data);
         await writeAudit(req, 'CREATE', options.resourceName || Model.modelName, item, data);
+        notifyAdmins(req, 'CREATE', options.resourceName || Model.modelName, item).catch((error) => console.error(`Notification failed: ${error.message}`));
         if (options.afterCreate && options.awaitAfterCreate) await options.afterCreate(item, req.user);
         else if (options.afterCreate) setImmediate(() => options.afterCreate(item, req.user).catch((error) => console.error(`Post-create action failed: ${error.message}`)));
         res.status(201).json(item);
@@ -89,6 +91,7 @@ export function createCrudController(Model, options = {}) {
           throw new Error('Record not found');
         }
         await writeAudit(req, 'UPDATE', options.resourceName || Model.modelName, item, data);
+        notifyAdmins(req, 'UPDATE', options.resourceName || Model.modelName, item).catch((error) => console.error(`Notification failed: ${error.message}`));
         res.json(item);
       } catch (error) {
         next(error);
@@ -102,6 +105,7 @@ export function createCrudController(Model, options = {}) {
           throw new Error('Record not found');
         }
         await writeAudit(req, 'DELETE', options.resourceName || Model.modelName, item);
+        notifyAdmins(req, 'DELETE', options.resourceName || Model.modelName, item).catch((error) => console.error(`Notification failed: ${error.message}`));
         res.json({ message: 'Record deleted' });
       } catch (error) {
         next(error);

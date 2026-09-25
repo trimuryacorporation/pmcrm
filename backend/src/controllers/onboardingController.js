@@ -1,5 +1,7 @@
 import { body } from 'express-validator';
 import { Candidate, Freelancer, Vendor } from '../models/People.js';
+import Notification from '../models/Notification.js';
+import User from '../models/User.js';
 import { inviteCandidate, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 import { ensureUniquePersonContact } from '../services/personContactService.js';
 
@@ -65,6 +67,20 @@ export async function submitOnboarding(req, res, next) {
     if (type === 'vendor') await inviteVendor(person);
     if (type === 'freelancer') await inviteFreelancer(person);
     if (type === 'candidate') await inviteCandidate(person);
+
+    const admins = await User.find({ role: { $in: ['super_admin', 'admin'] }, isActive: true }).select('_id');
+    const profileName = person.agencyName || person.fullName || person.name;
+    const label = personType;
+    const path = type === 'candidate' ? 'candidates' : `${type}s`;
+    if (admins.length) {
+      await Notification.insertMany(admins.map((admin) => ({
+        user: admin._id,
+        title: `New ${label} onboarding`,
+        message: `${profileName} has submitted an onboarding profile.`,
+        type: 'System',
+        link: `/${path}/${person._id}`
+      })));
+    }
 
     const message = 'Your profile has been submitted. Check your email to set up your password.';
     res.status(201).json({ message });

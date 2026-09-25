@@ -1,5 +1,6 @@
 import { Allocation } from '../models/Work.js';
 import { Employee } from '../models/People.js';
+import { notifyAdmins } from '../services/adminNotificationService.js';
 
 export async function createAllocation(req, res, next) {
   try {
@@ -11,6 +12,7 @@ export async function createAllocation(req, res, next) {
       }
     }
     const allocation = await Allocation.create(req.body);
+    notifyAdmins(req, 'CREATE', 'Allocation', allocation).catch((error) => console.error(`Notification failed: ${error.message}`));
     res.status(201).json(await allocation.populate('project employee vendor freelancer candidate'));
   } catch (error) {
     next(error);
