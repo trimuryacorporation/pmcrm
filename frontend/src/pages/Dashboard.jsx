@@ -50,7 +50,9 @@ export default function Dashboard() {
   const passwordSetup = data.passwordSetup || { summary: [], records: [] };
   const selectedPasswordRecords = passwordSetup.records.filter((item) => item.status === passwordStatus);
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
-  const canViewProjectApplications = isAdmin || Boolean(user?.accessPermissions?.['project-applications']?.view);
+  const canViewFullDashboard = isAdmin || Boolean(user?.accessPermissions?.['dashboard-full']?.view);
+  const canViewProjectApplications = canViewFullDashboard || Boolean(user?.accessPermissions?.['project-applications']?.view);
+  const canViewPasswordSetup = canViewFullDashboard || Boolean(user?.accessPermissions?.['password-setup-status']?.view);
   const applicantsByProject = (data.projectApplications || []).reduce((groups, application) => {
     const project = application.project;
     if (!project?._id) return groups;
@@ -84,13 +86,13 @@ export default function Dashboard() {
         <StatCard label="Live Projects" value={cards.activeProjects} icon={Activity} accent="from-emerald-500 to-teal-600" to="/projects?status=Live" />
         <StatCard label="Completed Projects" value={cards.completedProjects} icon={CheckCircle2} accent="from-blue-500 to-cyan-600" to="/projects?status=Completed" />
         <StatCard label="Pending Projects" value={cards.pendingProjects} icon={Clock3} accent="from-amber-500 to-orange-600" to="/projects?status=Pre-Sale,Not%20Live,On%20Hold,Draft" />
-        {isAdmin && <><StatCard label="Candidates" value={cards.totalCandidates} icon={UserCheck} to="/candidates" />
+        {canViewFullDashboard && <><StatCard label="Candidates" value={cards.totalCandidates} icon={UserCheck} to="/candidates" />
         <StatCard label="Vendors" value={cards.totalVendors} icon={Building2} accent="from-purple-500 to-indigo-600" to="/vendors" />
         <StatCard label="Freelancers" value={cards.totalFreelancers} icon={Users} accent="from-sky-500 to-blue-600" to="/freelancers" />
         <StatCard label="Employees" value={cards.totalEmployees} icon={Users} accent="from-slate-700 to-slate-950" to="/employees" /></>}
       </div>
 
-      {passwordSetup.summary.length > 0 && <div className="card mt-6 p-5">
+      {canViewPasswordSetup && passwordSetup.summary.length > 0 && <div className="card mt-6 p-5">
         <div className="mb-4 flex items-center gap-2"><KeyRound className="h-5 w-5 text-indigo-600" /><div><h3 className="font-bold text-slate-950">Password Setup Status</h3><p className="mt-0.5 text-sm text-slate-500">Click a status to view the people in that group.</p></div></div>
         <div className="grid gap-3 sm:grid-cols-3">
           {passwordSetup.summary.map((item) => <button key={item.status} type="button" onClick={() => setPasswordStatus(item.status)} className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:shadow-md ${item.status === 'Password set' ? 'border-emerald-200 bg-emerald-50' : item.status === 'Setup pending' ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'}`}><p className="text-sm font-semibold text-slate-700">{item.status}</p><p className="mt-2 text-3xl font-black text-slate-950">{item.count}</p><p className="mt-1 text-xs font-semibold text-indigo-600">View people →</p></button>)}

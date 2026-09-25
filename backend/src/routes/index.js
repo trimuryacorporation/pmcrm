@@ -10,7 +10,7 @@ import { getCommunicationSettings, testEmail, testWhatsApp, updateCommunicationS
 import { createPortal, listPortals } from '../controllers/portalController.js';
 import { protect } from '../middleware/auth.js';
 import { globalSearch } from '../controllers/searchController.js';
-import { authorize } from '../middleware/auth.js';
+import { authorize, authorizeResource } from '../middleware/auth.js';
 import { body } from 'express-validator';
 import { createApiKey, listApiKeys, revokeApiKey } from '../controllers/apiAccessController.js';
 import { validate } from '../middleware/validate.js';
@@ -88,7 +88,7 @@ router.put('/activity/location', protect, updateLocation);
 router.get('/activity', protect, listActivity);
 router.get('/activity/users', protect, authorize('super_admin', 'admin'), listUsers);
 router.get('/activity/deliveries', protect, authorize('super_admin', 'admin'), listDeliveries);
-router.get('/employee-activity', protect, authorize('super_admin', 'admin'), listEmployeeActivity);
+router.get('/employee-activity', protect, authorizeResource('employee-activity-report', 'view', 'super_admin', 'admin'), listEmployeeActivity);
 router.post('/employee-activity/log-view', protect, authorize('super_admin', 'admin', 'employee'), logEmployeeView);
 router.get('/settings/storage', protect, authorize('super_admin'), getStorageSettings);
 router.post('/settings/storage/test', protect, authorize('super_admin'), testStorageSettings);
@@ -97,6 +97,6 @@ router.get('/settings/communications', protect, authorize('super_admin'), getCom
 router.put('/settings/communications', protect, authorize('super_admin'), updateCommunicationSettings);
 router.post('/settings/communications/test-email', protect, authorize('super_admin'), testEmail);
 router.post('/settings/communications/test-whatsapp', protect, authorize('super_admin'), testWhatsApp);
-router.route('/portals').get(protect, authorize('super_admin', 'admin'), listPortals).post(protect, authorize('super_admin'), createPortal);
+router.route('/portals').get(protect, authorizeResource('portal-directory', 'view', 'super_admin', 'admin'), listPortals).post(protect, authorize('super_admin'), createPortal);
 
 export default router;

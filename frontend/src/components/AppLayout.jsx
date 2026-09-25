@@ -81,8 +81,9 @@ export default function AppLayout() {
   const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
   const navigationSections = navItems
     .filter((item) => {
-      if (item.roles && !item.roles.includes(user?.role)) return false;
-      const permission = user?.accessPermissions?.[permissionKeyForPath[item.path]];
+      const permission = user?.accessPermissions?.[item.permissionKey || permissionKeyForPath[item.path]];
+      const roleAllowed = !item.roles || item.roles.includes(user?.role);
+      if (!roleAllowed && !permission?.view) return false;
       return user?.role === 'super_admin' || !permission || permission.view;
     })
     .reduce((sections, item) => {
