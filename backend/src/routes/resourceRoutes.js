@@ -301,12 +301,21 @@ allocationRoutes.route('/:id').get(authorize(...employeeManagers), allocationCon
 const taskController = createCrudController(Task, {
   populate: 'folder project employee vendor freelancer candidate'
 });
-export const taskFolderRoutes = routerFor(createCrudController(TaskFolder, {
+const taskFolderController = createCrudController(TaskFolder, {
   populate: 'project',
   searchFields: ['name'],
   prepareCreate: taskFolderData,
   prepareUpdate: taskFolderData
-}), [body('project').notEmpty().withMessage('Project is required')], { readRoles: employeeManagers, writeRoles: employeeManagers });
+});
+export const taskFolderRoutes = express.Router();
+taskFolderRoutes.use(protect);
+taskFolderRoutes.route('/')
+  .get(authorize(...employeeManagers), taskFolderController.list)
+  .post(authorize(...employeeManagers), [body('project').notEmpty().withMessage('Project is required')], validate, taskFolderController.create);
+taskFolderRoutes.route('/:id')
+  .get(authorize(...employeeManagers), taskFolderController.get)
+  .put(authorize(...adminRoles), taskFolderController.update)
+  .delete(authorize(...adminRoles), taskFolderController.remove);
 export const taskRoutes = express.Router();
 taskRoutes.use(protect);
 taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...employeeManagers), [body('title').notEmpty(), body('folder').notEmpty()], validate, taskController.create);

@@ -34,6 +34,7 @@ export default function Tasks() {
   const [deleteSaving, setDeleteSaving] = useState(false);
   const { user } = useAuth();
   const canManage = ['super_admin', 'admin', 'employee'].includes(user?.role);
+  const canManageFolders = ['super_admin', 'admin'].includes(user?.role);
   const references = useReferenceOptions(canManage ? ['projects', 'employees', 'vendors', 'freelancers', 'candidates'] : []);
 
   async function load() {
@@ -132,8 +133,8 @@ export default function Tasks() {
                 <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">{tasksInFolder.length} task{tasksInFolder.length !== 1 ? 's' : ''}</span>
                 <div className="flex items-center rounded-md bg-white ring-1 ring-slate-200">
                   {actionButton('View folder', Eye, (event) => { event.preventDefault(); event.stopPropagation(); setViewing({ type: 'folder', item: folder }); })}
-                  {canManage && actionButton('Edit folder', Pencil, (event) => { event.preventDefault(); event.stopPropagation(); setFolderEditing(folder); })}
-                  {canManage && actionButton('Delete folder', Trash2, (event) => { event.preventDefault(); event.stopPropagation(); setDeleting({ type: 'folder', item: folder }); }, 'danger')}
+                  {canManageFolders && actionButton('Edit folder', Pencil, (event) => { event.preventDefault(); event.stopPropagation(); setFolderEditing(folder); })}
+                  {canManageFolders && actionButton('Delete folder', Trash2, (event) => { event.preventDefault(); event.stopPropagation(); setDeleting({ type: 'folder', item: folder }); }, 'danger')}
                 </div>
               </div>
             </summary>
