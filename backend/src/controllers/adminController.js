@@ -4,6 +4,68 @@ import { writeAudit } from '../utils/audit.js';
 const administratorRoles = ['super_admin', 'admin'];
 const publicFields = 'name email role isActive lastLoginAt createdAt';
 
+export async function listAccessUsers(req, res, next) {
+  try {
+    const items = await User.find().select(`${publicFields} accessPermissions`).sort({ role: 1, name: 1 });
+    res.json({ items });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateUserPermissions(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+    if (String(user._id) === String(req.user._id)) {
+      res.status(400);
+      throw new Error('You cannot change your own permissions');
+    }
+    const input = req.body.accessPermissions || {};
+    const cleaned = {};
+    for (const [resource, actions] of Object.entries(input)) {
+      if (!/^[a-z-]+$/.test(resource) || !actions || typeof actions !== 'object') continue;
+      cleaned[resource] = ['view', 'create', 'edit', 'delete'].reduce((result, action) => ({ ...result, [action]: Boolean(actions[action]) }), {});
+    }
+    user.accessPermissions = cleaned;
+    await user.save();
+    await writeAudit(req, 'UPDATE', 'User permissions', user, { accessPermissions: cleaned });
+    res.json({ item: { _id: user._id, accessPermissions: user.accessPermissions }, message: 'User permissions updated' });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function updateUserAccessRole(req, res, next) {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      res.status(404);
+      throw new Error('User not found');
+    }
+    if (String(user._id) === String(req.user._id)) {
+      res.status(400);
+      throw new Error('You cannot change your own access role');
+    }
+    if (user.role === 'super_admin' && req.body.role !== 'super_admin' && user.isActive) {
+      const activeSuperAdmins = await User.countDocuments({ role: 'super_admin', isActive: true });
+      if (activeSuperAdmins <= 1) {
+        res.status(400);
+        throw new Error('At least one active Super Admin is required');
+      }
+    }
+    user.role = req.body.role;
+    await user.save();
+    await writeAudit(req, 'UPDATE', 'User access role', user, { role: user.role });
+    res.json({ item: { _id: user._id, name: user.name, email: user.email, role: user.role, isActive: user.isActive }, message: 'Access role updated' });
+  } catch (error) {
+    next(error);
+  }
+}
+
 export async function listAdministrators(req, res, next) {
   try {
     const items = await User.find({ role: { $in: administratorRoles } }).select(publicFields).sort({ createdAt: -1 });

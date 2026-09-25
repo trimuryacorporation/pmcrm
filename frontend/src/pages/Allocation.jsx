@@ -26,7 +26,10 @@ export default function Allocation() {
   const [editing, setEditing] = useState(null);
   const [emailingId, setEmailingId] = useState('');
   const { user } = useAuth();
-  const canManage = ['super_admin', 'admin'].includes(user?.role);
+  const access = user?.accessPermissions?.allocation;
+  const roleCanManage = ['super_admin', 'admin'].includes(user?.role);
+  const can = (action) => user?.role === 'super_admin' || (access ? Boolean(access[action]) : roleCanManage);
+  const canManage = can('create') || can('edit');
   const references = useReferenceOptions(canManage ? ['projects', 'employees', 'vendors', 'freelancers', 'candidates'] : []);
 
   async function load() {
@@ -110,7 +113,7 @@ export default function Allocation() {
       <PageHeader
         title="Project Allocation"
         action={
-          canManage && <button className="btn-primary" onClick={() => setEditing({})}>
+          can('create') && <button className="btn-primary" onClick={() => setEditing({})}>
             <Plus className="h-4 w-4" />
             Add Allocation
           </button>
@@ -129,10 +132,10 @@ export default function Allocation() {
           }))}
           columns={['personName', 'personType', 'projectName', 'languages', 'role', 'workStatus', 'completionPercentage']}
           basePath="/allocation"
-          onEdit={canManage ? setEditing : undefined}
-          onEmail={canManage ? sendAllocationEmail : undefined}
+          onEdit={can('edit') ? setEditing : undefined}
+          onEmail={can('create') ? sendAllocationEmail : undefined}
           emailingId={emailingId}
-          onDelete={canManage ? async (row) => {
+          onDelete={can('delete') ? async (row) => {
             await endpoints.remove('allocations', row._id);
             load();
           } : undefined}

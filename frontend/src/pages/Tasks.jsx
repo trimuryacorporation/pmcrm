@@ -33,8 +33,11 @@ export default function Tasks() {
   const [deleting, setDeleting] = useState(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const { user } = useAuth();
-  const canManage = ['super_admin', 'admin', 'employee'].includes(user?.role);
-  const canManageFolders = ['super_admin', 'admin'].includes(user?.role);
+  const access = user?.accessPermissions?.tasks;
+  const roleCanManage = ['super_admin', 'admin', 'employee'].includes(user?.role);
+  const can = (action) => user?.role === 'super_admin' || (access ? Boolean(access[action]) : roleCanManage);
+  const canManage = can('create') || can('edit');
+  const canManageFolders = !access && ['super_admin', 'admin'].includes(user?.role) || user?.role === 'super_admin' || Boolean(access?.edit || access?.delete);
   const references = useReferenceOptions(canManage ? ['projects', 'employees', 'vendors', 'freelancers', 'candidates'] : []);
 
   async function load() {
@@ -117,7 +120,7 @@ export default function Tasks() {
       <PageHeader
         title="Project Tasks"
         action={
-          canManage && <button className="btn-primary" onClick={() => setFolderEditing({})}>
+          can('create') && <button className="btn-primary" onClick={() => setFolderEditing({})}>
             <Plus className="h-4 w-4" />
             Create Folder
           </button>
@@ -142,8 +145,8 @@ export default function Tasks() {
                 <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">{tasksInFolder.length} task{tasksInFolder.length !== 1 ? 's' : ''}</span>
                 <div className="flex items-center rounded-md bg-white ring-1 ring-slate-200">
                   {actionButton('View folder', Eye, (event) => { event.preventDefault(); event.stopPropagation(); viewItem('folder', folder); })}
-                  {canManageFolders && actionButton('Edit folder', Pencil, (event) => { event.preventDefault(); event.stopPropagation(); setFolderEditing(folder); })}
-                  {canManageFolders && actionButton('Delete folder', Trash2, (event) => { event.preventDefault(); event.stopPropagation(); setDeleting({ type: 'folder', item: folder }); }, 'danger')}
+                  {canManageFolders && can('edit') && actionButton('Edit folder', Pencil, (event) => { event.preventDefault(); event.stopPropagation(); setFolderEditing(folder); })}
+                  {canManageFolders && can('delete') && actionButton('Delete folder', Trash2, (event) => { event.preventDefault(); event.stopPropagation(); setDeleting({ type: 'folder', item: folder }); }, 'danger')}
                 </div>
               </div>
             </summary>
@@ -181,7 +184,7 @@ export default function Tasks() {
                   </div>
                 </div>
               </div>}
-              {canManage && <button onClick={() => setEditing({ folder: folder._id, status: 'To Do' })} className="flex min-h-36 flex-col items-center justify-center rounded-lg border-2 border-dashed border-indigo-200 bg-indigo-50 p-4 text-center text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100">
+              {can('create') && <button onClick={() => setEditing({ folder: folder._id, status: 'To Do' })} className="flex min-h-36 flex-col items-center justify-center rounded-lg border-2 border-dashed border-indigo-200 bg-indigo-50 p-4 text-center text-indigo-700 hover:border-indigo-400 hover:bg-indigo-100">
                 <Plus className="h-5 w-5" />
                 <span className="mt-2 font-semibold">Add Task</span>
                 <span className="mt-1 text-xs text-indigo-500">Add a task to this folder</span>
@@ -194,8 +197,8 @@ export default function Tasks() {
                       <StatusBadge value={task.priority} />
                       <div className="flex rounded-md border border-slate-100 bg-slate-50">
                         {actionButton('View task', Eye, () => viewItem('task', task))}
-                        {canManage && actionButton('Edit task', Pencil, () => setEditing(task))}
-                        {canManage && actionButton('Delete task', Trash2, () => setDeleting({ type: 'task', item: task }), 'danger')}
+                        {can('edit') && actionButton('Edit task', Pencil, () => setEditing(task))}
+                        {can('delete') && actionButton('Delete task', Trash2, () => setDeleting({ type: 'task', item: task }), 'danger')}
                       </div>
                     </div>
                   </div>

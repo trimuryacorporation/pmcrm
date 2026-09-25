@@ -27,6 +27,7 @@ function userResponse(user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    accessPermissions: user.accessPermissions,
     avatar: user.avatar,
     lastLoginAt: user.lastLoginAt,
     lastSeenAt: user.lastSeenAt,

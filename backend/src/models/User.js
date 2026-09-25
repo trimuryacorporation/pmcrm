@@ -9,6 +9,16 @@ const userSchema = new mongoose.Schema(
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true, minlength: 6, select: false },
     role: { type: String, enum: ROLES, default: 'employee' },
+    accessPermissions: {
+      type: Map,
+      of: new mongoose.Schema({
+        view: { type: Boolean, default: false },
+        create: { type: Boolean, default: false },
+        edit: { type: Boolean, default: false },
+        delete: { type: Boolean, default: false }
+      }, { _id: false }),
+      default: undefined
+    },
     linkedEmployee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },
     linkedVendor: { type: mongoose.Schema.Types.ObjectId, ref: 'Vendor' },
     linkedFreelancer: { type: mongoose.Schema.Types.ObjectId, ref: 'Freelancer' },

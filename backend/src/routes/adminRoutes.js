@@ -1,12 +1,15 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createAdministrator, listAdministrators, updateAdministratorStatus } from '../controllers/adminController.js';
+import { createAdministrator, listAccessUsers, listAdministrators, updateAdministratorStatus, updateUserAccessRole, updateUserPermissions } from '../controllers/adminController.js';
 import { authorize, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
 router.use(protect, authorize('super_admin'));
+router.get('/access-users', listAccessUsers);
+router.patch('/access-users/:id/role', body('role').isIn(['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate']).withMessage('Valid role is required'), validate, updateUserAccessRole);
+router.patch('/access-users/:id/permissions', updateUserPermissions);
 router.route('/')
   .get(listAdministrators)
   .post([

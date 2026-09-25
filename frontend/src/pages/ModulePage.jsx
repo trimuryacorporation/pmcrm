@@ -37,9 +37,12 @@ export default function ModulePage({ module }) {
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
   const visibleColumns = isAdmin ? config.columns : config.columns.filter((column) => !config.adminOnlyColumns?.includes(column));
   const visibleFields = isAdmin ? config.fields : config.fields.filter(([name]) => !config.adminOnlyFields?.includes(name));
-  const canManage = isAdmin
+  const roleCanManage = isAdmin
     || (user?.role === 'vendor' && vendorManagedModules.includes(module))
     || (user?.role === 'employee' && employeeManagedModules.includes(module));
+  const customPermissions = user?.accessPermissions?.[module];
+  const can = (action) => user?.role === 'super_admin' || (customPermissions ? Boolean(customPermissions[action]) : roleCanManage);
+  const canManage = can('create') || can('edit');
 
   async function load() {
     const data = await endpoints.list(config.endpoint, {
@@ -177,7 +180,7 @@ export default function ModulePage({ module }) {
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
-            {canManage && <button className="btn-primary" onClick={() => setEditing({})}>
+            {can('create') && <button className="btn-primary" onClick={() => setEditing({})}>
               <Plus className="h-4 w-4" />
               Add {config.singular}
             </button>}
@@ -203,7 +206,7 @@ export default function ModulePage({ module }) {
           {exporting ? 'Preparing...' : 'Download Excel'}
         </button>
       </div>}
-      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={canManage ? setEditing : undefined} onDelete={canManage ? setDeleting : undefined} onInvite={canManage && ['candidates', 'employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} onWhatsApp={canManage && ['candidates', 'vendors', 'freelancers'].includes(module) ? openWhatsApp : undefined} invitingId={invitingId} />}
+      {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={can('edit') ? setEditing : undefined} onDelete={can('delete') ? setDeleting : undefined} onInvite={can('create') && ['candidates', 'employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} onWhatsApp={can('create') && ['candidates', 'vendors', 'freelancers'].includes(module) ? openWhatsApp : undefined} invitingId={invitingId} />}
       {directoryModule && pagination.total > 0 && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-500">Showing {Math.min((page - 1) * pageSize + 1, pagination.total)}-{Math.min(page * pageSize, pagination.total)} of {pagination.total} records</p>
         <div className="flex items-center gap-2">

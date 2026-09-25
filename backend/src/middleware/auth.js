@@ -47,3 +47,19 @@ export function authorize(...roles) {
     next();
   };
 }
+
+export function authorizeResource(resource, action, ...roles) {
+  return (req, res, next) => {
+    if (req.user.role === 'super_admin') return next();
+    const permissions = req.user.accessPermissions;
+    const permission = permissions?.get ? permissions.get(resource) : permissions?.[resource];
+    if (permission && typeof permission[action] === 'boolean') {
+      if (permission[action]) return next();
+      res.status(403);
+      return next(new Error(`You do not have ${action} access for ${resource}`));
+    }
+    if (roles.includes(req.user.role)) return next();
+    res.status(403);
+    return next(new Error('You do not have permission to perform this action'));
+  };
+}

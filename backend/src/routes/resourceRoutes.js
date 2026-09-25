@@ -8,7 +8,7 @@ import { Allocation, Task } from '../models/Work.js';
 import { Invoice, Payment } from '../models/Finance.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
-import { authorize, protect } from '../middleware/auth.js';
+import { authorize, authorizeResource, protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { createCrudController } from '../controllers/crudController.js';
 import { createAllocation, sendAllocationEmail } from '../controllers/allocationController.js';
@@ -131,17 +131,17 @@ function enrichPeopleWithPasswordStatus(linkField) {
   };
 }
 
-function routerFor(controller, rules = [], access = {}) {
+function routerFor(resource, controller, rules = [], access = {}) {
   const router = express.Router();
   const readRoles = access.readRoles || ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'];
   const writeRoles = access.writeRoles || adminRoles;
   router.use(protect);
-  router.route('/').get(authorize(...readRoles), controller.list).post(authorize(...writeRoles), rules, validate, controller.create);
-  router.route('/:id').get(authorize(...readRoles), controller.get).put(authorize(...writeRoles), controller.update).delete(authorize(...writeRoles), controller.remove);
+  router.route('/').get(authorizeResource(resource, 'view', ...readRoles), controller.list).post(authorizeResource(resource, 'create', ...writeRoles), rules, validate, controller.create);
+  router.route('/:id').get(authorizeResource(resource, 'view', ...readRoles), controller.get).put(authorizeResource(resource, 'edit', ...writeRoles), controller.update).delete(authorizeResource(resource, 'delete', ...writeRoles), controller.remove);
   return router;
 }
 
-export const projectRoutes = routerFor(
+export const projectRoutes = routerFor('projects',
   createCrudController(Project, {
     populate: 'projectManager employees vendors freelancers candidates',
     searchFields: ['name', 'code', 'clientName'],
@@ -160,11 +160,11 @@ projectRoutes.post('/:id/applications', authorize('employee', 'vendor', 'freelan
 projectRoutes.get('/:id/applications/mine', authorize('employee', 'vendor', 'freelancer'), getMyProjectApplication);
 projectRoutes.get('/:id/applications', authorize(...adminRoles), listProjectApplications);
 
-export const clientRoutes = routerFor(createCrudController(Client, {
+export const clientRoutes = routerFor('clients', createCrudController(Client, {
   searchFields: ['name', 'companyName', 'contactPerson', 'email', 'phone']
 }), [body('name').trim().notEmpty().withMessage('Client name is required')], { readRoles: adminRoles, writeRoles: adminRoles });
 
-export const candidateRoutes = routerFor(createCrudController(Candidate, {
+export const candidateRoutes = routerFor('candidates', createCrudController(Candidate, {
   populate: 'assignedProject vendor ownerEmployee',
   searchFields: ['fullName', 'email'],
   languageField: 'language',
@@ -188,7 +188,7 @@ export const candidateRoutes = routerFor(createCrudController(Candidate, {
   body('mobile').notEmpty().withMessage('Mobile number is required')
 ], { readRoles: ['super_admin', 'admin', 'employee', 'candidate'], writeRoles: employeeManagers });
 candidateRoutes.post('/:id/invite', authorize(...employeeManagers), invitePersonRoute(Candidate, inviteCandidate, 'Candidate'));
-export const vendorRoutes = routerFor(createCrudController(Vendor, {
+export const vendorRoutes = routerFor('vendors', createCrudController(Vendor, {
   populate: 'assignedProjects ownerEmployee',
   searchFields: ['agencyName'],
   afterCreate: inviteVendor,
@@ -210,7 +210,7 @@ export const vendorRoutes = routerFor(createCrudController(Vendor, {
 }), [
   body('agencyName').notEmpty()
 ], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
-export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
+export const freelancerRoutes = routerFor('freelancers', createCrudController(Freelancer, {
   populate: 'assignedProjects vendor ownerEmployee',
   searchFields: ['name'],
   afterCreate: inviteFreelancer,
@@ -234,7 +234,7 @@ export const freelancerRoutes = routerFor(createCrudController(Freelancer, {
 }), [
   body('name').notEmpty()
 ], { readRoles: ['super_admin', 'admin', 'employee'], writeRoles: employeeManagers });
-export const employeeRoutes = routerFor(createCrudController(Employee, {
+export const employeeRoutes = routerFor('employees', createCrudController(Employee, {
   populate: 'assignedProjects vendor',
   searchFields: ['name', 'employeeId'],
   afterCreate: inviteEmployee,
@@ -295,9 +295,9 @@ const allocationController = createCrudController(Allocation, {
 });
 export const allocationRoutes = express.Router();
 allocationRoutes.use(protect);
-allocationRoutes.route('/').get(authorize(...employeeManagers), allocationController.list).post(authorize(...adminRoles), createAllocation);
-allocationRoutes.post('/:id/send-email', authorize(...adminRoles), sendAllocationEmail);
-allocationRoutes.route('/:id').get(authorize(...employeeManagers), allocationController.get).put(authorize(...adminRoles), allocationController.update).delete(authorize(...adminRoles), allocationController.remove);
+allocationRoutes.route('/').get(authorizeResource('allocation', 'view', ...employeeManagers), allocationController.list).post(authorizeResource('allocation', 'create', ...adminRoles), createAllocation);
+allocationRoutes.post('/:id/send-email', authorizeResource('allocation', 'create', ...adminRoles), sendAllocationEmail);
+allocationRoutes.route('/:id').get(authorizeResource('allocation', 'view', ...employeeManagers), allocationController.get).put(authorizeResource('allocation', 'edit', ...adminRoles), allocationController.update).delete(authorizeResource('allocation', 'delete', ...adminRoles), allocationController.remove);
 
 const taskController = createCrudController(Task, {
   populate: 'folder project employee vendor freelancer candidate'
@@ -311,26 +311,26 @@ const taskFolderController = createCrudController(TaskFolder, {
 export const taskFolderRoutes = express.Router();
 taskFolderRoutes.use(protect);
 taskFolderRoutes.route('/')
-  .get(authorize(...employeeManagers), taskFolderController.list)
-  .post(authorize(...employeeManagers), [body('project').notEmpty().withMessage('Project is required')], validate, taskFolderController.create);
+  .get(authorizeResource('tasks', 'view', ...employeeManagers), taskFolderController.list)
+  .post(authorizeResource('tasks', 'create', ...employeeManagers), [body('project').notEmpty().withMessage('Project is required')], validate, taskFolderController.create);
 taskFolderRoutes.route('/:id')
-  .get(authorize(...employeeManagers), taskFolderController.get)
-  .put(authorize(...adminRoles), taskFolderController.update)
-  .delete(authorize(...adminRoles), taskFolderController.remove);
+  .get(authorizeResource('tasks', 'view', ...employeeManagers), taskFolderController.get)
+  .put(authorizeResource('tasks', 'edit', ...adminRoles), taskFolderController.update)
+  .delete(authorizeResource('tasks', 'delete', ...adminRoles), taskFolderController.remove);
 export const taskRoutes = express.Router();
 taskRoutes.use(protect);
-taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...employeeManagers), [body('title').notEmpty(), body('folder').notEmpty()], validate, taskController.create);
+taskRoutes.route('/').get(authorizeResource('tasks', 'view', ...employeeManagers), taskController.list).post(authorizeResource('tasks', 'create', ...employeeManagers), [body('title').notEmpty(), body('folder').notEmpty()], validate, taskController.create);
 taskRoutes.route('/:id')
-  .get(authorize(...employeeManagers), taskController.get)
-  .put(authorize(...employeeManagers), taskController.update)
-  .delete(authorize(...employeeManagers), taskController.remove);
-export const paymentRoutes = routerFor(createCrudController(Payment, { populate: 'project' }), [body('payeeName').notEmpty(), body('amount').isNumeric()], { readRoles: adminRoles });
-export const invoiceRoutes = routerFor(createCrudController(Invoice, { populate: 'project' }), [
+  .get(authorizeResource('tasks', 'view', ...employeeManagers), taskController.get)
+  .put(authorizeResource('tasks', 'edit', ...employeeManagers), taskController.update)
+  .delete(authorizeResource('tasks', 'delete', ...employeeManagers), taskController.remove);
+export const paymentRoutes = routerFor('payments', createCrudController(Payment, { populate: 'project' }), [body('payeeName').notEmpty(), body('amount').isNumeric()], { readRoles: adminRoles });
+export const invoiceRoutes = routerFor('payments', createCrudController(Invoice, { populate: 'project' }), [
   body('invoiceNumber').notEmpty(),
   body('payeeName').notEmpty(),
   body('amount').isNumeric()
 ], { readRoles: adminRoles });
-export const notificationRoutes = routerFor(createCrudController(Notification, {
+export const notificationRoutes = routerFor('notifications', createCrudController(Notification, {
   populate: 'user',
   userScope: (user) => ({ user: user._id })
 }), [body('title').notEmpty()]);

@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { navItems } from '../data/modules.js';
 import { endpoints } from '../utils/api.js';
 
+const permissionKeyForPath = { '/projects': 'projects', '/clients': 'clients', '/candidates': 'candidates', '/vendors': 'vendors', '/freelancers': 'freelancers', '/employees': 'employees', '/allocation': 'allocation', '/tasks': 'tasks', '/payments': 'payments' };
+
 export default function AppLayout() {
   const [open, setOpen] = useState(false);
   const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(() => localStorage.getItem('trimurya_sidebar_open') !== 'false');
@@ -78,7 +80,11 @@ export default function AppLayout() {
 
   const unreadNotifications = notifications.filter((notification) => !notification.isRead).length;
   const navigationSections = navItems
-    .filter((item) => !item.roles || item.roles.includes(user?.role))
+    .filter((item) => {
+      if (item.roles && !item.roles.includes(user?.role)) return false;
+      const permission = user?.accessPermissions?.[permissionKeyForPath[item.path]];
+      return user?.role === 'super_admin' || !permission || permission.view;
+    })
     .reduce((sections, item) => {
       const section = item.section || 'Menu';
       if (!sections[section]) sections[section] = [];

@@ -26,6 +26,7 @@ import Activity from './pages/Activity.jsx';
 import EmployeeActivity from './pages/EmployeeActivity.jsx';
 import Administrators from './pages/Administrators.jsx';
 import ApiAccess from './pages/ApiAccess.jsx';
+import AccessControl from './pages/AccessControl.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -68,6 +69,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route element={<ProtectedRoute roles={['super_admin']} />}>
                 <Route path="/administrators" element={<Administrators />} />
                 <Route path="/api-access" element={<ApiAccess />} />
+                <Route path="/access-control" element={<AccessControl />} />
               </Route>
             </Route>
           </Route>
