@@ -22,6 +22,7 @@ import {
   notificationRoutes,
   paymentRoutes,
   projectRoutes,
+  taskFolderRoutes,
   taskRoutes,
   vendorRoutes
 } from './resourceRoutes.js';
@@ -39,6 +40,7 @@ router.use('/vendors', vendorRoutes);
 router.use('/freelancers', freelancerRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/allocations', allocationRoutes);
+router.use('/task-folders', taskFolderRoutes);
 router.use('/tasks', taskRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/invoices', invoiceRoutes);

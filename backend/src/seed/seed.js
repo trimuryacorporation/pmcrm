@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { connectDB } from '../config/db.js';
 import User from '../models/User.js';
 import Project from '../models/Project.js';
+import TaskFolder from '../models/TaskFolder.js';
 import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Allocation, Task } from '../models/Work.js';
 import { Invoice, Payment } from '../models/Finance.js';
@@ -22,6 +23,7 @@ async function seed() {
     Vendor.deleteMany(),
     Freelancer.deleteMany(),
     Allocation.deleteMany(),
+    TaskFolder.deleteMany(),
     Task.deleteMany(),
     Payment.deleteMany(),
     Invoice.deleteMany(),
@@ -137,11 +139,17 @@ async function seed() {
     { project: projects[0]._id, personType: 'Candidate', candidate: candidates[0]._id, role: 'Annotator', workStatus: 'Review', completionPercentage: 72 }
   ]);
 
+  const taskFolders = await TaskFolder.insertMany([
+    { name: projects[0].name, project: projects[0]._id },
+    { name: projects[1].name, project: projects[1]._id },
+    { name: projects[2].name, project: projects[2]._id }
+  ]);
+
   await Task.insertMany([
-    { title: 'Finalize Hindi QA batch 12', description: 'Audit 1,200 accepted clips before delivery.', assignedToType: 'Employee', employee: employees[0]._id, project: projects[0]._id, dueDate: '2026-09-27', priority: 'High', status: 'In Progress' },
-    { title: 'Vendor sample calibration', description: 'Run calibration on new Marathi sample set.', assignedToType: 'Vendor', vendor: vendors[0]._id, project: projects[0]._id, dueDate: '2026-09-29', priority: 'Medium', status: 'To Do' },
-    { title: 'OCR entity review', description: 'Review pending medication entity mismatches.', assignedToType: 'Freelancer', freelancer: freelancers[0]._id, project: projects[1]._id, dueDate: '2026-09-25', priority: 'Urgent', status: 'Review' },
-    { title: 'Completion report archive', description: 'Attach final report and delivery summary.', assignedToType: 'Employee', employee: employees[1]._id, project: projects[2]._id, dueDate: '2026-09-24', priority: 'Low', status: 'Completed' }
+    { title: 'Finalize Hindi QA batch 12', description: 'Audit 1,200 accepted clips before delivery.', assignedToType: 'Employee', employee: employees[0]._id, folder: taskFolders[0]._id, project: projects[0]._id, dueDate: '2026-09-27', priority: 'High', status: 'In Progress' },
+    { title: 'Vendor sample calibration', description: 'Run calibration on new Marathi sample set.', assignedToType: 'Vendor', vendor: vendors[0]._id, folder: taskFolders[0]._id, project: projects[0]._id, dueDate: '2026-09-29', priority: 'Medium', status: 'To Do' },
+    { title: 'OCR entity review', description: 'Review pending medication entity mismatches.', assignedToType: 'Freelancer', freelancer: freelancers[0]._id, folder: taskFolders[1]._id, project: projects[1]._id, dueDate: '2026-09-25', priority: 'Urgent', status: 'Review' },
+    { title: 'Completion report archive', description: 'Attach final report and delivery summary.', assignedToType: 'Employee', employee: employees[1]._id, folder: taskFolders[2]._id, project: projects[2]._id, dueDate: '2026-09-24', priority: 'Low', status: 'Completed' }
   ]);
 
   await Payment.insertMany([

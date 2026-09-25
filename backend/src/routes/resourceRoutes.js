@@ -1,6 +1,7 @@
 import express from 'express';
 import { body } from 'express-validator';
 import Project from '../models/Project.js';
+import TaskFolder from '../models/TaskFolder.js';
 import Client from '../models/Client.js';
 import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { Allocation, Task } from '../models/Work.js';
@@ -91,6 +92,16 @@ function projectData(body) {
     data.applicationQuestions = data.applicationQuestions.split('\n').map((question) => question.trim()).filter(Boolean);
   }
   return data;
+}
+
+async function taskFolderData(req, body) {
+  const project = await Project.findById(body.project).select('name');
+  if (!project) {
+    const error = new Error('Selected project was not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  return { project: project._id, name: project.name };
 }
 
 function passwordSetupStatus(account) {
@@ -288,7 +299,7 @@ allocationRoutes.route('/').get(authorize(...employeeManagers), allocationContro
 allocationRoutes.route('/:id').get(authorize(...employeeManagers), allocationController.get).put(authorize(...adminRoles), allocationController.update).delete(authorize(...adminRoles), allocationController.remove);
 
 const taskController = createCrudController(Task, {
-  populate: 'project employee vendor freelancer candidate',
+  populate: 'folder project employee vendor freelancer candidate',
   userScope: (user) => {
     if (user.role === 'employee') return { employee: user.linkedEmployee };
     if (user.role === 'vendor') return { vendor: user.linkedVendor };
@@ -296,9 +307,14 @@ const taskController = createCrudController(Task, {
     return {};
   }
 });
+export const taskFolderRoutes = routerFor(createCrudController(TaskFolder, {
+  populate: 'project',
+  searchFields: ['name'],
+  prepareCreate: taskFolderData
+}), [body('project').notEmpty().withMessage('Project is required')], { readRoles: employeeManagers, writeRoles: adminRoles });
 export const taskRoutes = express.Router();
 taskRoutes.use(protect);
-taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...adminRoles), [body('title').notEmpty(), body('project').notEmpty()], validate, taskController.create);
+taskRoutes.route('/').get(authorize(...employeeManagers), taskController.list).post(authorize(...adminRoles), [body('title').notEmpty(), body('folder').notEmpty()], validate, taskController.create);
 taskRoutes.route('/:id')
   .get(authorize(...employeeManagers), taskController.get)
   .put(authorize(...employeeManagers), (req, res, next) => {
