@@ -1,4 +1,4 @@
-import { GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { DeleteObjectCommand, GetObjectCommand, HeadBucketCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import SystemSetting from '../models/SystemSetting.js';
 import { decrypt } from '../utils/encryption.js';
 
@@ -45,6 +45,11 @@ export async function putR2Object({ key, body, contentType, metadata }) {
 export async function getR2Object(key) {
   const config = await getR2Config();
   return r2Client(config).send(new GetObjectCommand({ Bucket: config.bucket, Key: key }));
+}
+
+export async function deleteR2Object(key) {
+  const config = await getR2Config();
+  return r2Client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
 }
 
 export async function testR2Config(config) {

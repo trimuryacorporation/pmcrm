@@ -82,6 +82,7 @@ export function createCrudController(Model, options = {}) {
     async update(req, res, next) {
       try {
         const data = options.prepareUpdate ? await options.prepareUpdate(req, req.body) : req.body;
+        const previous = options.afterUpdate ? await Model.findOne(scopeQuery(req, { _id: req.params.id }, 'write')) : null;
         const item = await Model.findOneAndUpdate(scopeQuery(req, { _id: req.params.id }, 'write'), data, {
           new: true,
           runValidators: true
@@ -90,6 +91,7 @@ export function createCrudController(Model, options = {}) {
           res.status(404);
           throw new Error('Record not found');
         }
+        if (options.afterUpdate) setImmediate(() => options.afterUpdate(item, req.user, previous).catch((error) => console.error(`Post-update action failed: ${error.message}`)));
         await writeAudit(req, 'UPDATE', options.resourceName || Model.modelName, item, data);
         notifyAdmins(req, 'UPDATE', options.resourceName || Model.modelName, item).catch((error) => console.error(`Notification failed: ${error.message}`));
         res.json(item);

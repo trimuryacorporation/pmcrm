@@ -16,6 +16,7 @@ import { notifyProjectCreated } from '../services/projectNotificationService.js'
 import { inviteCandidate, inviteEmployee, inviteFreelancer, inviteVendor } from '../services/employeeInviteService.js';
 import { ensureUniquePersonContact } from '../services/personContactService.js';
 import { applicationRules, getMyProjectApplication, listProjectApplications, submitProjectApplication } from '../controllers/projectApplicationController.js';
+import { deleteR2Object } from '../config/r2.js';
 
 const adminRoles = ['super_admin', 'admin'];
 const employeeManagers = [...adminRoles, 'employee'];
@@ -94,6 +95,12 @@ function projectData(body) {
   return data;
 }
 
+async function removeReplacedProjectFiles(project, user, previous) {
+  const currentKeys = new Set((project.files || []).map((file) => file.key).filter(Boolean));
+  const removedFiles = (previous?.files || []).filter((file) => file.key && !currentKeys.has(file.key));
+  await Promise.all(removedFiles.map((file) => deleteR2Object(file.key)));
+}
+
 async function taskFolderData(req, body) {
   const project = await Project.findById(body.project).select('name');
   if (!project) {
@@ -150,6 +157,7 @@ export const projectRoutes = routerFor('projects',
     afterCreate: notifyProjectCreated,
     prepareCreate: (req, body) => projectData(body),
     prepareUpdate: (req, body) => projectData(body),
+    afterUpdate: removeReplacedProjectFiles,
     // Projects created by the CRM team are visible to every permitted project user.
     // Sensitive client fields are removed by transformRead for non-admin users.
     userScope: () => ({})

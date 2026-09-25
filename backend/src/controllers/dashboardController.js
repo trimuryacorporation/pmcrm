@@ -97,10 +97,10 @@ export async function dashboard(req, res, next) {
       canViewPasswordSetup
       ? User.find({ role: { $in: ['employee', 'vendor', 'freelancer', 'candidate'] } })
           .select('name email role linkedEmployee linkedVendor linkedFreelancer linkedCandidate passwordSetAt +passwordSetupToken +passwordSetupExpires')
-          .populate('linkedEmployee', 'name')
-          .populate('linkedVendor', 'agencyName contactPerson')
-          .populate('linkedFreelancer', 'name')
-          .populate('linkedCandidate', 'fullName')
+          .populate('linkedEmployee', 'name phone')
+          .populate('linkedVendor', 'agencyName contactPerson phone')
+          .populate('linkedFreelancer', 'name phone')
+          .populate('linkedCandidate', 'fullName mobile')
           .lean()
         : Promise.resolve([]),
       canViewProjectApplications
@@ -144,7 +144,7 @@ export async function dashboard(req, res, next) {
           ? 'Setup pending'
           : 'Not set';
       const resource = account.role === 'vendor' ? 'vendors' : account.role === 'freelancer' ? 'freelancers' : account.role === 'candidate' ? 'candidates' : 'employees';
-      return { id: account._id, profileId: profile?._id, resource, name, email: account.email, role: account.role, status };
+      return { id: account._id, profileId: profile?._id, resource, name, email: account.email, mobile: profile?.mobile || profile?.phone || '', role: account.role, status };
     });
     const passwordSetupSummary = ['Password set', 'Setup pending', 'Not set'].map((status) => ({
       status,

@@ -18,7 +18,10 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
 
   function setValue(name, value) {
     setForm((current) => {
+      // A new project-document selection is a replacement, not an addition.
+      // Existing files remain untouched until the user saves the form.
       const next = { ...current, [name]: value };
+      if (name === 'documentFiles' && value.length) next.files = [];
       fields.forEach(([fieldName, , type, sourceField]) => {
         if (type !== 'languageTeamCounts' || sourceField !== name) return;
         const selectedLanguages = Array.isArray(value) ? value : value ? [value] : [];
@@ -38,6 +41,20 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
       if (['vendor', 'freelancer'].includes(name)) delete next.languageTeamCounts;
       return next;
     });
+  }
+
+  function removeExistingFile(index) {
+    setForm((current) => ({
+      ...current,
+      files: (current.files || []).filter((_, fileIndex) => fileIndex !== index)
+    }));
+  }
+
+  function removeSelectedFile(index) {
+    setForm((current) => ({
+      ...current,
+      documentFiles: (current.documentFiles || []).filter((_, fileIndex) => fileIndex !== index)
+    }));
   }
 
   function setTaskAssignee(value) {
@@ -135,8 +152,21 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
                     multiple
                     onChange={(event) => setValue(name, Array.from(event.target.files || []))}
                   />
-                  <p className="mt-2 text-xs text-slate-500">PDF, DOC or DOCX. Maximum 20 MB per file.</p>
-                  {form.files?.length > 0 && <p className="mt-2 text-xs font-medium text-indigo-600">{form.files.length} existing document(s) will be preserved.</p>}
+                  <p className="mt-2 text-xs text-slate-500">PDF, DOC or DOCX. Maximum 20 MB per file. Selecting new files replaces all existing documents when you save.</p>
+                  {form.files?.length > 0 && <div className="mt-3 space-y-1.5">
+                    <p className="text-xs font-medium text-slate-600">Current documents: remove any that should not be kept.</p>
+                    {form.files.map((file, index) => <div key={`${file.key || file.url || file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700">
+                      <span className="min-w-0 truncate">{file.name || `Document ${index + 1}`}</span>
+                      <button type="button" onClick={() => removeExistingFile(index)} className="shrink-0 font-semibold text-rose-600 hover:text-rose-700">Remove</button>
+                    </div>)}
+                  </div>}
+                  {form.documentFiles?.length > 0 && <div className="mt-3 space-y-1.5">
+                    <p className="text-xs font-medium text-emerald-700">New documents to save:</p>
+                    {form.documentFiles.map((file, index) => <div key={`${file.name}-${file.lastModified}-${index}`} className="flex items-center justify-between gap-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800">
+                      <span className="min-w-0 truncate">{file.name}</span>
+                      <button type="button" onClick={() => removeSelectedFile(index)} className="shrink-0 font-semibold text-rose-600 hover:text-rose-700">Remove</button>
+                    </div>)}
+                  </div>}
                 </div>
               ) : type === 'textarea' ? (
                 <textarea className={`input min-h-24 resize-y ${errors[name] ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`} value={fieldValue(name, type)} onChange={(event) => setValue(name, event.target.value)} />
