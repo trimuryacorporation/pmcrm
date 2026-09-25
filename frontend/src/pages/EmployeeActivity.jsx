@@ -1,4 +1,4 @@
-import { Download, Users } from 'lucide-react';
+import { Download, RefreshCw, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import Loading from '../components/Loading.jsx';
 import PageHeader from '../components/PageHeader.jsx';
@@ -11,8 +11,19 @@ function csvValue(value) {
 export default function EmployeeActivity() {
   const [items, setItems] = useState(null);
 
+  async function load() {
+    try {
+      const data = await endpoints.employeeActivity();
+      setItems(data.items || []);
+    } catch {
+      setItems([]);
+    }
+  }
+
   useEffect(() => {
-    endpoints.employeeActivity().then((data) => setItems(data.items || [])).catch(() => setItems([]));
+    load();
+    const timer = window.setInterval(load, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
   function downloadReport() {
@@ -32,7 +43,7 @@ export default function EmployeeActivity() {
   if (!items) return <Loading label="Loading employee activity..." />;
 
   return <>
-    <PageHeader title="Employee Activity Report" action={<button className="btn-primary" onClick={downloadReport}><Download className="h-4 w-4" />Download Report</button>}>
+    <PageHeader title="Employee Activity Report" action={<div className="flex gap-2"><button className="btn-secondary" onClick={load}><RefreshCw className="h-4 w-4" />Refresh</button><button className="btn-primary" onClick={downloadReport}><Download className="h-4 w-4" />Download Report</button></div>}>
       Employee actions with name, employee ID, email address, and exact activity timing.
     </PageHeader>
     <div className="card overflow-hidden">

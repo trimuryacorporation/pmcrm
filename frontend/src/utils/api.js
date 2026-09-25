@@ -66,6 +66,7 @@ export const endpoints = {
   },
   activity: () => api('/activity'),
   employeeActivity: () => api('/employee-activity'),
+  logEmployeeView: (body) => api('/employee-activity/log-view', { method: 'POST', body: JSON.stringify(body) }),
   activeUsers: () => api('/activity/users'),
   deliveryLogs: () => api('/activity/deliveries'),
   updateLocation: (body) => api('/activity/location', { method: 'PUT', body: JSON.stringify(body) }),

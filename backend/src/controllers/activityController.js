@@ -69,11 +69,26 @@ export async function listDeliveries(req, res, next) {
 
 export async function listEmployeeActivity(req, res, next) {
   try {
-    const items = await AuditLog.find({ role: 'employee' })
+    const employeeUsers = await User.find({ role: 'employee' }).select('_id');
+    const items = await AuditLog.find({ $or: [{ role: 'employee' }, { user: { $in: employeeUsers.map((user) => user._id) } }] })
       .populate({ path: 'user', select: 'name email linkedEmployee', populate: { path: 'linkedEmployee', select: 'employeeId' } })
       .sort({ occurredAt: -1 })
       .limit(500);
     res.json({ items });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export async function logEmployeeView(req, res, next) {
+  try {
+    const { resource, resourceId, summary } = req.body;
+    if (!['Task', 'TaskFolder'].includes(resource)) {
+      res.status(400);
+      throw new Error('Only task and folder views can be logged here');
+    }
+    await writeAudit(req, 'VIEW', resource, { _id: resourceId, title: summary || resource });
+    res.status(201).json({ message: 'Activity logged' });
   } catch (error) {
     next(error);
   }

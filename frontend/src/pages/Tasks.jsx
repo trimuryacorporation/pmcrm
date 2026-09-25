@@ -103,6 +103,15 @@ export default function Tasks() {
     return <button type="button" aria-label={label} title={label} onClick={onClick} className={`rounded-md border border-transparent p-1.5 transition ${colors}`}><Icon className="h-4 w-4" /></button>;
   }
 
+  function viewItem(type, item) {
+    setViewing({ type, item });
+    if (user?.role === 'employee') {
+      const resource = type === 'folder' ? 'TaskFolder' : 'Task';
+      const summary = type === 'folder' ? item.project?.name || item.name : item.title;
+      endpoints.logEmployeeView({ resource, resourceId: item._id, summary }).catch(() => {});
+    }
+  }
+
   return (
     <>
       <PageHeader
@@ -132,7 +141,7 @@ export default function Tasks() {
               <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-500 ring-1 ring-slate-200">{tasksInFolder.length} task{tasksInFolder.length !== 1 ? 's' : ''}</span>
                 <div className="flex items-center rounded-md bg-white ring-1 ring-slate-200">
-                  {actionButton('View folder', Eye, (event) => { event.preventDefault(); event.stopPropagation(); setViewing({ type: 'folder', item: folder }); })}
+                  {actionButton('View folder', Eye, (event) => { event.preventDefault(); event.stopPropagation(); viewItem('folder', folder); })}
                   {canManageFolders && actionButton('Edit folder', Pencil, (event) => { event.preventDefault(); event.stopPropagation(); setFolderEditing(folder); })}
                   {canManageFolders && actionButton('Delete folder', Trash2, (event) => { event.preventDefault(); event.stopPropagation(); setDeleting({ type: 'folder', item: folder }); }, 'danger')}
                 </div>
@@ -184,7 +193,7 @@ export default function Tasks() {
                     <div className="flex items-center gap-1">
                       <StatusBadge value={task.priority} />
                       <div className="flex rounded-md border border-slate-100 bg-slate-50">
-                        {actionButton('View task', Eye, () => setViewing({ type: 'task', item: task }))}
+                        {actionButton('View task', Eye, () => viewItem('task', task))}
                         {canManage && actionButton('Edit task', Pencil, () => setEditing(task))}
                         {canManage && actionButton('Delete task', Trash2, () => setDeleting({ type: 'task', item: task }), 'danger')}
                       </div>
