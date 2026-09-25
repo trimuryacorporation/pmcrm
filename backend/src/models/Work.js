@@ -25,6 +25,8 @@ const taskSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     description: String,
+    languages: [{ type: String, trim: true }],
+    languageTeamCounts: [{ language: String, teamCount: { type: Number, min: 0, default: 0 } }],
     folder: { type: mongoose.Schema.Types.ObjectId, ref: 'TaskFolder', required: true },
     assignedToType: { type: String, enum: ['Employee', 'Vendor', 'Freelancer', 'Candidate'] },
     employee: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee' },

@@ -310,7 +310,8 @@ const taskController = createCrudController(Task, {
 export const taskFolderRoutes = routerFor(createCrudController(TaskFolder, {
   populate: 'project',
   searchFields: ['name'],
-  prepareCreate: taskFolderData
+  prepareCreate: taskFolderData,
+  prepareUpdate: taskFolderData
 }), [body('project').notEmpty().withMessage('Project is required')], { readRoles: employeeManagers, writeRoles: adminRoles });
 export const taskRoutes = express.Router();
 taskRoutes.use(protect);

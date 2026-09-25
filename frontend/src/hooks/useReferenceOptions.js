@@ -17,7 +17,7 @@ export default function useReferenceOptions(resources) {
     let active = true;
     Promise.all(resources.map(async (resource) => {
       const data = await endpoints.list(resource);
-      return [resource, (data.items || []).map((item) => ({ value: item._id, label: labels[resource](item) }))];
+      return [resource, (data.items || []).map((item) => ({ value: item._id, label: labels[resource](item), record: item }))];
     }))
       .then((entries) => active && setOptions(Object.fromEntries(entries)))
       .catch((error) => toast.error(`Could not load form options: ${error.message}`));
