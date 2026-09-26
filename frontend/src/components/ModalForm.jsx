@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { Eye, EyeOff, X } from 'lucide-react';
 import { useEffect, useId, useState } from 'react';
 import SearchableSelect from './SearchableSelect.jsx';
 import SelectField from './SelectField.jsx';
@@ -12,9 +12,10 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
   const titleId = useId();
   const [form, setForm] = useState({});
   const [errors, setErrors] = useState({});
+  const [visiblePasswords, setVisiblePasswords] = useState({});
   const required = requiredFields || fields.slice(0, 3).map(([name]) => name);
 
-  useEffect(() => setForm(initial || {}), [initial]);
+  useEffect(() => { setForm(initial || {}); setVisiblePasswords({}); }, [initial]);
 
   function setValue(name, value) {
     setForm((current) => {
@@ -170,6 +171,13 @@ export default function ModalForm({ title, fields, initial, onClose, onSubmit, r
                 </div>
               ) : type === 'textarea' ? (
                 <textarea className={`input min-h-24 resize-y ${errors[name] ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`} value={fieldValue(name, type)} onChange={(event) => setValue(name, event.target.value)} />
+              ) : type === 'password' ? (
+                <div className="relative">
+                  <input className={`input h-10 pr-10 ${errors[name] ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`} type={visiblePasswords[name] ? 'text' : 'password'} value={fieldValue(name, type)} onChange={(event) => setValue(name, event.target.value)} />
+                  <button type="button" onClick={() => setVisiblePasswords((current) => ({ ...current, [name]: !current[name] }))} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-slate-500 hover:bg-slate-100 hover:text-indigo-700" aria-label={visiblePasswords[name] ? `Hide ${label}` : `Show ${label}`} title={visiblePasswords[name] ? 'Hide password' : 'Show password'}>
+                    {visiblePasswords[name] ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               ) : (
                 <input className={`input h-10 ${errors[name] ? 'border-rose-400 focus:border-rose-500 focus:ring-rose-100' : ''}`} type={type} value={fieldValue(name, type)} onChange={(event) => setValue(name, type === 'number' ? Number(event.target.value) : event.target.value)} />
               )}

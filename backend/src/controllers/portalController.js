@@ -45,6 +45,7 @@ export async function getPortalCredential(req, res, next) {
       res.status(404);
       throw new Error('Portal not found');
     }
+    if (!portal.passwordEncrypted) return res.json({ loginId: portal.loginId || '', password: 'Not saved' });
     res.json({ loginId: portal.loginId, password: decrypt(portal.passwordEncrypted) });
   } catch (error) {
     next(error);
