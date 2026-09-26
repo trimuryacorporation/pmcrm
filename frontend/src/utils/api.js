@@ -103,4 +103,5 @@ export const endpoints = {
     return api(`/portals${parameters.size ? `?${parameters}` : ''}`);
   }
   , createPortal: (body) => api('/portals', { method: 'POST', body: JSON.stringify(body) })
+, portalCredential: (id) => api(`/portals/${id}/credential`)
 };

@@ -37,6 +37,7 @@ export default function ModulePage({ module }) {
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
   const visibleColumns = isAdmin ? config.columns : config.columns.filter((column) => !config.adminOnlyColumns?.includes(column));
   const visibleFields = isAdmin ? config.fields : config.fields.filter(([name]) => !config.adminOnlyFields?.includes(name));
+  const exportFields = visibleFields.filter(([, , type]) => type !== 'file');
   const roleCanManage = isAdmin
     || (user?.role === 'vendor' && vendorManagedModules.includes(module))
     || (user?.role === 'employee' && employeeManagedModules.includes(module));
@@ -78,7 +79,9 @@ export default function ModulePage({ module }) {
   }, [module, languageFilter, search, effectiveStatus]);
 
   function csvCell(value) {
-    const text = Array.isArray(value) ? value.join(', ') : value && typeof value === 'object' ? value.name || value.fullName || value.agencyName || '' : String(value ?? '');
+    const text = Array.isArray(value)
+      ? value.map((item) => item?.name || item?.fullName || item?.agencyName || String(item ?? '')).join(', ')
+      : value && typeof value === 'object' ? value.name || value.fullName || value.agencyName || value.code || '' : String(value ?? '');
     return `"${text.replace(/"/g, '""')}"`;
   }
 
@@ -97,7 +100,7 @@ export default function ModulePage({ module }) {
         const next = await endpoints.list(config.endpoint, { ...query, page: currentPage });
         exportRows.push(...(next.items || []));
       }
-      const csv = [config.columns.join(','), ...exportRows.map((row) => config.columns.map((column) => csvCell(row[column])).join(','))].join('\n');
+      const csv = [exportFields.map(([, label]) => csvCell(label)).join(','), ...exportRows.map((row) => exportFields.map(([field]) => csvCell(row[field])).join(','))].join('\n');
       const url = URL.createObjectURL(new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' }));
       const link = document.createElement('a');
       link.href = url;
@@ -180,6 +183,10 @@ export default function ModulePage({ module }) {
               <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               {refreshing ? 'Refreshing...' : 'Refresh'}
             </button>
+            <button className="btn-secondary" disabled={exporting} onClick={downloadExcel}>
+              <Download className="h-4 w-4" />
+              {exporting ? 'Preparing...' : 'Download Excel'}
+            </button>
             {can('create') && <button className="btn-primary" onClick={() => setEditing({})}>
               <Plus className="h-4 w-4" />
               Add {config.singular}
@@ -189,7 +196,7 @@ export default function ModulePage({ module }) {
       >
         {languageFilter ? <span>Showing {config.title.toLowerCase()} for <strong>{languageFilter}</strong>. <Link className="font-semibold text-indigo-600 hover:text-indigo-700" to={`/${module}`}>Clear filter</Link></span> : `Manage ${config.title.toLowerCase()} with validation, responsive tables, profile pages, and role-protected API access.`}
       </PageHeader>
-      {directoryModule && <div className="card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem_auto] xl:items-center">
+      {directoryModule && <div className="card mb-5 grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_13rem] xl:items-center">
         <div className="relative min-w-0 sm:col-span-2 xl:col-span-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input className="input h-10 pl-9" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={`Search ${config.title.toLowerCase()}...`} />
@@ -201,10 +208,7 @@ export default function ModulePage({ module }) {
             return <option key={normalized.value} value={normalized.value}>{normalized.label}</option>;
           })}
         </select>
-        <button className="btn-secondary w-full xl:w-auto" disabled={exporting} onClick={downloadExcel}>
-          <Download className="h-4 w-4" />
-          {exporting ? 'Preparing...' : 'Download Excel'}
-        </button>
+
       </div>}
       {!rows ? <Loading label={`Loading ${config.title.toLowerCase()}...`} /> : <DataTable rows={rows} columns={visibleColumns} basePath={`/${module}`} onEdit={can('edit') ? setEditing : undefined} onDelete={can('delete') ? setDeleting : undefined} onInvite={can('create') && ['candidates', 'employees', 'vendors', 'freelancers'].includes(module) ? invite : undefined} onWhatsApp={can('create') && ['candidates', 'vendors', 'freelancers'].includes(module) ? openWhatsApp : undefined} invitingId={invitingId} />}
       {directoryModule && pagination.total > 0 && <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

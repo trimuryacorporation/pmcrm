@@ -7,7 +7,7 @@ import { downloadProjectFile, uploadFiles } from '../controllers/uploadControlle
 import { heartbeat, listActivity, listDeliveries, listEmployeeActivity, listUsers, logEmployeeView, updateLocation } from '../controllers/activityController.js';
 import { getStorageSettings, testStorageSettings, updateStorageSettings } from '../controllers/settingsController.js';
 import { getCommunicationSettings, testEmail, testWhatsApp, updateCommunicationSettings } from '../controllers/communicationSettingsController.js';
-import { createPortal, listPortals } from '../controllers/portalController.js';
+import { createPortal, getPortalCredential, listPortals } from '../controllers/portalController.js';
 import { protect } from '../middleware/auth.js';
 import { globalSearch } from '../controllers/searchController.js';
 import { authorize, authorizeResource } from '../middleware/auth.js';
@@ -97,6 +97,7 @@ router.get('/settings/communications', protect, authorize('super_admin'), getCom
 router.put('/settings/communications', protect, authorize('super_admin'), updateCommunicationSettings);
 router.post('/settings/communications/test-email', protect, authorize('super_admin'), testEmail);
 router.post('/settings/communications/test-whatsapp', protect, authorize('super_admin'), testWhatsApp);
-router.route('/portals').get(protect, authorizeResource('portal-directory', 'view', 'super_admin', 'admin'), listPortals).post(protect, authorize('super_admin'), createPortal);
+router.route('/portals').get(protect, authorize('super_admin'), listPortals).post(protect, authorize('super_admin'), createPortal);
+router.get('/portals/:id/credential', protect, authorize('super_admin'), getPortalCredential);
 
 export default router;

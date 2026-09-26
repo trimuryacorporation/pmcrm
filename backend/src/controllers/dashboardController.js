@@ -23,7 +23,30 @@ function aggregateLanguages(Model, field) {
     { $group: { _id: '$languages', count: { $sum: 1 } } }
   ]);
 }
-
+async function paymentRecipientRecords() {
+  const [payments, vendors, freelancers] = await Promise.all([
+    Payment.find({ payeeType: { $in: ['Vendor', 'Freelancer'] } }).sort({ createdAt: -1 }).limit(50).lean(),
+    Vendor.find().select('agencyName contactPerson email phone').lean(),
+    Freelancer.find().select('name email phone').lean()
+  ]);
+  const keyOf = (value) => String(value || '').trim().toLowerCase();
+  const vendorsByName = new Map(vendors.flatMap((vendor) => [[keyOf(vendor.agencyName), vendor], [keyOf(vendor.contactPerson), vendor]]).filter(([key]) => key));
+  const freelancersByName = new Map(freelancers.map((freelancer) => [keyOf(freelancer.name), freelancer]).filter(([key]) => key));
+  return payments.map((payment) => {
+    const profile = payment.payeeType === 'Vendor' ? vendorsByName.get(keyOf(payment.payeeName)) : freelancersByName.get(keyOf(payment.payeeName));
+    return {
+      id: payment._id,
+      name: payment.payeeName,
+      type: payment.payeeType,
+      transactionId: payment.transactionId || 'Not recorded',
+      email: profile?.email || 'Not available',
+      phone: profile?.phone || 'Not available',
+      amount: payment.amount,
+      status: payment.status,
+      paidDate: payment.paidDate
+    };
+  });
+}
 export async function dashboard(req, res, next) {
   try {
     const isAdmin = ['super_admin', 'admin'].includes(req.user.role);
@@ -65,7 +88,8 @@ export async function dashboard(req, res, next) {
       tasks,
       languageGroups,
       passwordSetupUsers,
-      projectApplications
+      projectApplications,
+      paymentRecipients
     ] = await Promise.all([
       Project.countDocuments(projectFilter),
       Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }),
@@ -117,7 +141,8 @@ export async function dashboard(req, res, next) {
           })
           .sort({ createdAt: -1 })
           .lean()
-        : Promise.resolve([])
+        : Promise.resolve([]),
+      hasDashboardFullAccess ? paymentRecipientRecords() : Promise.resolve([])
     ]);
 
     const languageSummaryMap = new Map();
@@ -170,6 +195,7 @@ export async function dashboard(req, res, next) {
       languageSummary,
       passwordSetup: { summary: passwordSetupSummary, records: passwordSetupRecords },
       projectApplications,
+      paymentRecipients,
       upcomingDeadlines,
       recentActivities: recentProjects.map((project) => ({
         title: `${project.name} updated`,

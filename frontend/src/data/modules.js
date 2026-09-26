@@ -2,7 +2,7 @@ import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, Extern
 import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
-  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, section: 'Workspace', roles: ['super_admin', 'admin', 'employee'] },
+  { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, section: 'Workspace', roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'] },
   { label: 'Projects', path: '/projects', icon: Briefcase, section: 'Operations', roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
   { label: 'Tasks', path: '/tasks', icon: ClipboardList, section: 'Operations', roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Allocation', path: '/allocation', icon: ClipboardList, section: 'Operations', roles: ['super_admin', 'admin', 'employee'] },
@@ -15,7 +15,7 @@ export const navItems = [
   { label: 'Reports', path: '/reports', icon: CircleDollarSign, section: 'Finance & Reports', roles: ['super_admin', 'admin'] },
   { label: 'Employee Activity', path: '/employee-activity', icon: Activity, section: 'Administration', roles: ['super_admin', 'admin'], permissionKey: 'employee-activity-report' },
   { label: 'Activity', path: '/activity', icon: Activity, section: 'Administration', roles: ['super_admin', 'admin'] },
-  { label: 'Portal', path: '/portal', icon: ExternalLink, section: 'Administration', roles: ['super_admin', 'admin'], permissionKey: 'portal-directory' },
+  { label: 'Portal Credentials', path: '/portal', icon: ExternalLink, section: 'Administration', roles: ['super_admin'], permissionKey: 'portal-directory' },
   { label: 'Administrators', path: '/administrators', icon: ShieldCheck, section: 'Administration', roles: ['super_admin'] },
   { label: 'Access Control', path: '/access-control', icon: SlidersHorizontal, section: 'Administration', roles: ['super_admin'] },
   { label: 'API Access', path: '/api-access', icon: KeyRound, section: 'Administration', roles: ['super_admin'] },

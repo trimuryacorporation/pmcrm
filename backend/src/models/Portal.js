@@ -5,6 +5,8 @@ const portalSchema = new mongoose.Schema(
     companyName: { type: String, required: true, trim: true },
     contactPerson: { type: String, required: true, trim: true },
     email: { type: String, required: true, lowercase: true, trim: true },
+    loginId: { type: String, required: true, trim: true },
+    passwordEncrypted: { type: String, required: true, select: false },
     url: { type: String, required: true, trim: true },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   },
