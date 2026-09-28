@@ -12,7 +12,7 @@ const projectApplicationSchema = new mongoose.Schema(
   {
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true, index: true },
     applicant: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    applicantRole: { type: String, enum: ['employee', 'vendor', 'freelancer'], required: true },
+    applicantRole: { type: String, enum: ['employee', 'vendor', 'freelancer', 'candidate'], required: true },
     answers: { type: [answerSchema], required: true },
     status: { type: String, enum: ['Submitted', 'Reviewed', 'Shortlisted', 'Rejected'], default: 'Submitted' }
   },

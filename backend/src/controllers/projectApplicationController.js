@@ -42,11 +42,12 @@ export async function listProjectApplications(req, res, next) {
     const applications = await ProjectApplication.find({ project: req.params.id })
       .populate({
         path: 'applicant',
-        select: 'name email role linkedEmployee linkedVendor linkedFreelancer',
+        select: 'name email role linkedEmployee linkedVendor linkedFreelancer linkedCandidate',
         populate: [
           { path: 'linkedEmployee' },
           { path: 'linkedVendor' },
-          { path: 'linkedFreelancer' }
+          { path: 'linkedFreelancer' },
+          { path: 'linkedCandidate' }
         ]
       })
       .sort({ createdAt: -1 })

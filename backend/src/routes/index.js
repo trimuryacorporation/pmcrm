@@ -67,7 +67,7 @@ router.route('/api-access/keys')
 router.patch('/api-access/keys/:id/revoke', protect, authorize('super_admin'), revokeApiKey);
 router.get('/search', protect, globalSearch);
 router.use('/administrators', adminRoutes);
-router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee', 'candidate'), dashboard);
+router.get('/dashboard', protect, authorize('super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'), dashboard);
 router.use('/projects', projectRoutes);
 router.use('/clients', clientRoutes);
 router.use('/candidates', candidateRoutes);

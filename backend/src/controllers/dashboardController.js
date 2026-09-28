@@ -50,12 +50,15 @@ async function paymentRecipientRecords() {
 export async function dashboard(req, res, next) {
   try {
     const isAdmin = ['super_admin', 'admin'].includes(req.user.role);
-    const dashboardPermission = req.user.accessPermissions?.get ? req.user.accessPermissions.get('dashboard-full') : req.user.accessPermissions?.['dashboard-full'];
-    const hasDashboardFullAccess = isAdmin || Boolean(dashboardPermission?.view);
-    const applicationPermission = req.user.accessPermissions?.get ? req.user.accessPermissions.get('project-applications') : req.user.accessPermissions?.['project-applications'];
-    const canViewProjectApplications = hasDashboardFullAccess || Boolean(applicationPermission?.view);
-    const passwordSetupPermission = req.user.accessPermissions?.get ? req.user.accessPermissions.get('password-setup-status') : req.user.accessPermissions?.['password-setup-status'];
-    const canViewPasswordSetup = hasDashboardFullAccess || Boolean(passwordSetupPermission?.view);
+    const isPartner = ['vendor', 'freelancer', 'candidate'].includes(req.user.role);
+    const permissionFor = (resource) => req.user.accessPermissions?.get ? req.user.accessPermissions.get(resource) : req.user.accessPermissions?.[resource];
+    const dashboardPermission = permissionFor('dashboard-full');
+    const hasDashboardFullAccess = isAdmin || (!isPartner && Boolean(dashboardPermission?.view));
+    const dashboardAccess = Object.fromEntries(['projects', 'monthly-analytics', 'project-status', 'recent-activity', 'upcoming-deadlines'].map((section) => [section, !isPartner || Boolean(permissionFor('dashboard-' + section)?.view)]));
+    const applicationPermission = permissionFor('project-applications');
+    const canViewProjectApplications = !isPartner && (hasDashboardFullAccess || Boolean(applicationPermission?.view));
+    const passwordSetupPermission = permissionFor('password-setup-status');
+    const canViewPasswordSetup = !isPartner && (hasDashboardFullAccess || Boolean(passwordSetupPermission?.view));
     const projectFilter = hasDashboardFullAccess ? {} : req.user.role === 'employee'
       ? { employees: req.user.linkedEmployee }
       : req.user.role === 'vendor'
@@ -91,23 +94,23 @@ export async function dashboard(req, res, next) {
       projectApplications,
       paymentRecipients
     ] = await Promise.all([
-      Project.countDocuments(projectFilter),
-      Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }),
-      Project.countDocuments({ ...projectFilter, status: 'Completed' }),
-      Project.countDocuments({ ...projectFilter, status: { $in: ['Pre-Sale', 'Not Live', 'On Hold', 'Draft'] } }),
+      dashboardAccess.projects ? Project.countDocuments(projectFilter) : 0,
+      dashboardAccess.projects ? Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }) : 0,
+      dashboardAccess.projects ? Project.countDocuments({ ...projectFilter, status: 'Completed' }) : 0,
+      dashboardAccess.projects ? Project.countDocuments({ ...projectFilter, status: { $in: ['Pre-Sale', 'Not Live', 'On Hold', 'Draft'] } }) : 0,
       hasDashboardFullAccess ? Candidate.countDocuments() : 0,
       hasDashboardFullAccess ? Vendor.countDocuments() : req.user.role === 'vendor' ? 1 : 0,
       hasDashboardFullAccess ? Freelancer.countDocuments() : req.user.role === 'freelancer' ? 1 : 0,
       hasDashboardFullAccess ? Employee.countDocuments() : req.user.role === 'employee' ? 1 : 0,
-      Project.aggregate([{ $match: projectFilter }, { $group: { _id: '$status', count: { $sum: 1 }, avgProgress: { $avg: '$progress' } } }]),
-      Project.aggregate([
+      dashboardAccess['project-status'] ? Project.aggregate([{ $match: projectFilter }, { $group: { _id: '$status', count: { $sum: 1 }, avgProgress: { $avg: '$progress' } } }]) : [],
+      dashboardAccess['monthly-analytics'] ? Project.aggregate([
         { $match: projectFilter },
         { $group: { _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } }, projects: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ['$status', 'Completed'] }, 1, 0] } } } },
         { $sort: { _id: 1 } },
         { $limit: 12 }
-      ]),
-      Project.find({ ...projectFilter, endDate: { $gte: new Date() }, status: { $nin: ['Completed', 'Cancelled'] } }).sort({ endDate: 1 }).limit(8),
-      Project.find(projectFilter).sort({ updatedAt: -1 }).limit(8).select('name code status priority progress updatedAt'),
+      ]) : [],
+      dashboardAccess['upcoming-deadlines'] ? Project.find({ ...projectFilter, endDate: { $gte: new Date() }, status: { $nin: ['Completed', 'Cancelled'] } }).sort({ endDate: 1 }).limit(8) : [],
+      dashboardAccess['recent-activity'] ? Project.find(projectFilter).sort({ updatedAt: -1 }).limit(8).select('name code status priority progress updatedAt') : [],
       hasDashboardFullAccess ? Payment.aggregate([{ $match: { status: { $ne: 'Paid' } } }, { $group: { _id: null, total: { $sum: '$amount' } } }]) : [],
       hasDashboardFullAccess ? Payment.aggregate([{ $match: { status: 'Paid' } }, { $group: { _id: null, total: { $sum: '$amount' } } }]) : [],
       Task.find(taskFilter).populate('project', 'name code').sort({ dueDate: 1 }).limit(20),
@@ -132,11 +135,12 @@ export async function dashboard(req, res, next) {
           .populate('project', 'name code')
           .populate({
             path: 'applicant',
-            select: 'name email role linkedEmployee linkedVendor linkedFreelancer',
+            select: 'name email role linkedEmployee linkedVendor linkedFreelancer linkedCandidate',
             populate: [
               { path: 'linkedEmployee' },
               { path: 'linkedVendor' },
-              { path: 'linkedFreelancer' }
+              { path: 'linkedFreelancer' },
+              { path: 'linkedCandidate' }
             ]
           })
           .sort({ createdAt: -1 })
@@ -189,6 +193,7 @@ export async function dashboard(req, res, next) {
         pendingPayments: pendingPayments[0]?.total || 0,
         paidPayments: paidPayments[0]?.total || 0
       },
+      dashboardAccess,
       completionPercentage: totalProjects ? Math.round((completedProjects / totalProjects) * 100) : 0,
       statusSummary,
       monthlyProjects,

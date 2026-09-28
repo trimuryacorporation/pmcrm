@@ -7,7 +7,7 @@ function applicantName(application) {
 
 function profileFor(application) {
   const applicant = application.applicant || {};
-  return applicant.linkedVendor || applicant.linkedFreelancer || applicant.linkedEmployee || {};
+  return applicant.linkedVendor || applicant.linkedFreelancer || applicant.linkedCandidate || applicant.linkedEmployee || {};
 }
 
 function profileDetails(application) {

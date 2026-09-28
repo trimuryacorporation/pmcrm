@@ -162,10 +162,11 @@ export const projectRoutes = routerFor('projects',
     // Sensitive client fields are removed by transformRead for non-admin users.
     userScope: () => ({})
   }),
-  [body('name').notEmpty(), body('code').notEmpty(), body('clientName').notEmpty()]
+  [body('name').notEmpty(), body('code').notEmpty(), body('clientName').notEmpty()],
+  { readRoles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'] }
 );
-projectRoutes.post('/:id/applications', authorize('employee', 'vendor', 'freelancer'), applicationRules, validate, submitProjectApplication);
-projectRoutes.get('/:id/applications/mine', authorize('employee', 'vendor', 'freelancer'), getMyProjectApplication);
+projectRoutes.post('/:id/applications', authorize('candidate', 'employee', 'vendor', 'freelancer'), applicationRules, validate, submitProjectApplication);
+projectRoutes.get('/:id/applications/mine', authorize('candidate', 'employee', 'vendor', 'freelancer'), getMyProjectApplication);
 projectRoutes.get('/:id/applications', authorizeResource('project-applications', 'view', ...adminRoles), listProjectApplications);
 
 export const clientRoutes = routerFor('clients', createCrudController(Client, {

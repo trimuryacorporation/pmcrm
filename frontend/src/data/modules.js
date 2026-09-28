@@ -3,7 +3,7 @@ import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE
 
 export const navItems = [
   { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, section: 'Workspace', roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'] },
-  { label: 'Projects', path: '/projects', icon: Briefcase, section: 'Operations', roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer'] },
+  { label: 'Projects', path: '/projects', icon: Briefcase, section: 'Operations', roles: ['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'] },
   { label: 'Tasks', path: '/tasks', icon: ClipboardList, section: 'Operations', roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Allocation', path: '/allocation', icon: ClipboardList, section: 'Operations', roles: ['super_admin', 'admin', 'employee'] },
   { label: 'Clients', path: '/clients', icon: Building2, section: 'People', roles: ['super_admin', 'admin'] },

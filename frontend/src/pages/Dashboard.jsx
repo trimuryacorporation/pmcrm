@@ -50,9 +50,10 @@ export default function Dashboard() {
   const passwordSetup = data.passwordSetup || { summary: [], records: [] };
   const selectedPasswordRecords = passwordSetup.records.filter((item) => item.status === passwordStatus);
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
-  const canViewFullDashboard = isAdmin || Boolean(user?.accessPermissions?.['dashboard-full']?.view);
-  const canViewProjectApplications = canViewFullDashboard || Boolean(user?.accessPermissions?.['project-applications']?.view);
-  const canViewPasswordSetup = canViewFullDashboard || Boolean(user?.accessPermissions?.['password-setup-status']?.view);
+  const isPartner = ['vendor', 'freelancer', 'candidate'].includes(user?.role);
+  const canViewFullDashboard = isAdmin || (!isPartner && Boolean(user?.accessPermissions?.['dashboard-full']?.view));
+  const canViewProjectApplications = !isPartner && (canViewFullDashboard || Boolean(user?.accessPermissions?.['project-applications']?.view));
+  const canViewPasswordSetup = !isPartner && (canViewFullDashboard || Boolean(user?.accessPermissions?.['password-setup-status']?.view));
   const applicantsByProject = (data.projectApplications || []).reduce((groups, application) => {
     const project = application.project;
     if (!project?._id) return groups;
@@ -150,7 +151,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="card mt-6 p-5">
+      {canViewFullDashboard && <div className="card mt-6 p-5">
         <div className="mb-5">
           <h3 className="font-bold text-slate-950">Language-wise Resource Availability</h3>
           <p className="mt-1 text-sm text-slate-500">Candidates, vendors and freelancers available for each selected language.</p>
@@ -189,7 +190,7 @@ export default function Dashboard() {
             </div>
           </>
         ) : <p className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-sm text-slate-500">No language data has been added yet.</p>}
-      </div>
+      </div>}
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="card p-5 xl:col-span-2">

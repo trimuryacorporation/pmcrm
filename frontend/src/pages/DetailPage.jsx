@@ -26,7 +26,7 @@ export default function DetailPage({ module }) {
   }, [id, config.endpoint]);
 
   useEffect(() => {
-    const eligible = module === 'projects' && ['employee', 'vendor', 'freelancer'].includes(user?.role);
+    const eligible = module === 'projects' && ['candidate', 'employee', 'vendor', 'freelancer'].includes(user?.role);
     if (!eligible) return;
     endpoints.myProjectApplication(id)
       .then((response) => setHasApplied(response.applied))
@@ -43,7 +43,7 @@ export default function DetailPage({ module }) {
   if (!item) return <Loading />;
   const title = item.name || item.fullName || item.agencyName || item.payeeName || item.invoiceNumber || item.employeeId || config.singular;
   const listPath = config.listPath || `/${module}`;
-  const canApply = module === 'projects' && ['employee', 'vendor', 'freelancer'].includes(user?.role);
+  const canApply = module === 'projects' && ['candidate', 'employee', 'vendor', 'freelancer'].includes(user?.role);
   const canReviewApplications = module === 'projects' && ['super_admin', 'admin'].includes(user?.role);
 
   return (
