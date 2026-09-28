@@ -27,12 +27,14 @@ import EmployeeActivity from './pages/EmployeeActivity.jsx';
 import Administrators from './pages/Administrators.jsx';
 import ApiAccess from './pages/ApiAccess.jsx';
 import AccessControl from './pages/AccessControl.jsx';
+import LandingPage from './pages/LandingPage.jsx';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <AuthProvider>
       <Router>
         <Routes>
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -40,7 +42,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/set-password" element={<SetPassword />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
+
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/projects" element={<ModulePage module="projects" />} />
               <Route path="/projects/:id" element={<DetailPage module="projects" />} />
