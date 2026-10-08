@@ -38,6 +38,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/shared/projects/:token" element={<SharedProject />} />
+          <Route path="/p/:token" element={<SharedProject />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

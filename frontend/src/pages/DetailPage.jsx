@@ -82,7 +82,7 @@ export default function DetailPage({ module }) {
       >
         Profile, project history, documents, performance, notes, and operational details.
       </PageHeader>
-      {shareUrl && <div className="card mb-6 p-4"><label htmlFor="project-share-url" className="text-sm font-semibold text-slate-800">Public project link</label><div className="mt-2 flex flex-wrap gap-2"><input id="project-share-url" className="min-w-0 flex-1 rounded-lg border border-slate-200 p-2 text-sm" value={shareUrl} readOnly onFocus={(event) => event.target.select()} /><a className="btn-secondary" href={shareUrl} target="_blank" rel="noreferrer">Open</a></div><p className="mt-2 text-xs text-slate-500">Anyone with this link can view basic project details without logging in. Client Name and Client Rate are hidden.</p></div>}
+      {shareUrl && <div className="card mb-6 p-4"><label htmlFor="project-share-url" className="text-sm font-semibold text-slate-800">Public project link</label><div className="mt-2 flex flex-wrap gap-2"><input id="project-share-url" className="min-w-0 flex-1 rounded-lg border border-slate-200 p-2 text-sm" value={shareUrl} readOnly onFocus={(event) => event.target.select()} /><a className="btn-secondary" href={shareUrl} target="_blank" rel="noreferrer">Open</a></div><p className="mt-2 text-xs text-slate-500">Anyone with this link can view project details, documents, notes and questions without logging in. Client Name and Client Rate are hidden.</p></div>}
       {canApply && hasApplied && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-emerald-900 shadow-sm">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
