@@ -10,6 +10,7 @@ import Allocation from './pages/Allocation.jsx';
 import AllocationDetail from './pages/AllocationDetail.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import DetailPage from './pages/DetailPage.jsx';
+import SharedProject from './pages/SharedProject.jsx';
 import Login from './pages/Login.jsx';
 import Onboarding from './pages/Onboarding.jsx';
 import ForgotPassword from './pages/ForgotPassword.jsx';
@@ -36,6 +37,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/shared/projects/:token" element={<SharedProject />} />
           <Route path="/onboarding" element={<Onboarding />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />

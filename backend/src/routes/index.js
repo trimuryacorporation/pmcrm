@@ -1,5 +1,6 @@
 import express from 'express';
 import authRoutes from './authRoutes.js';
+import { createProjectShare, getSharedProject } from '../controllers/projectShareController.js';
 import adminRoutes from './adminRoutes.js';
 import { dashboard } from '../controllers/dashboardController.js';
 import { getReport } from '../controllers/reportController.js';
@@ -54,6 +55,8 @@ function collectEndpoints(currentRouter, prefix = '') {
 }
 
 router.use('/auth', authRoutes);
+router.get('/public/projects/:token', getSharedProject);
+router.post('/projects/:id/share', protect, authorizeResource('projects', 'view', 'super_admin', 'admin'), createProjectShare);
 router.get('/api-access/endpoints', protect, authorize('super_admin'), (req, res) => {
   const items = collectEndpoints(router, '/api')
     .filter((item) => !item.path.includes('/api-access/endpoints'))

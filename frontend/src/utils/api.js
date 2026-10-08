@@ -45,6 +45,8 @@ async function download(path, fileName) {
 }
 
 export const endpoints = {
+  createProjectShare: (id) => api(`/projects/${id}/share`, { method: 'POST' }),
+  sharedProject: (token) => api(`/public/projects/${encodeURIComponent(token)}`),
   globalSearch: (query) => api(`/search?q=${encodeURIComponent(query)}`),
   dashboard: () => api('/dashboard'),
   updateProfile: (body) => api('/auth/profile', { method: 'PUT', body: JSON.stringify(body) }),

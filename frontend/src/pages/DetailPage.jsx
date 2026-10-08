@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Download, FileText, Send, Users } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Download, FileText, Send, Users, Link2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -19,7 +19,21 @@ export default function DetailPage({ module }) {
   const [hasApplied, setHasApplied] = useState(false);
   const [applications, setApplications] = useState(null);
   const [showApplicants, setShowApplicants] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
+  const [sharing, setSharing] = useState(false);
   const { user } = useAuth();
+  useEffect(() => { setShareUrl(''); }, [id]);
+  async function shareProject() {
+    setSharing(true);
+    try {
+      const response = await endpoints.createProjectShare(id);
+      const url = new URL(response.path, window.location.origin).href;
+      setShareUrl(url);
+      try { await navigator.clipboard.writeText(url); toast.success('Share link copied'); }
+      catch { toast.success('Share link ready. Copy the link below.'); }
+    } catch (error) { toast.error(error.message); }
+    finally { setSharing(false); }
+  }
 
   useEffect(() => {
     endpoints.get(config.endpoint, id).then(setItem);
@@ -51,8 +65,9 @@ export default function DetailPage({ module }) {
       <PageHeader
         title={title}
         action={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             {canReviewApplications && <button type="button" className="btn-secondary" onClick={() => setShowApplicants(true)}><Users className="h-4 w-4" />Applicants ({applications?.length || 0})</button>}
+            {canReviewApplications && <button type="button" className="btn-secondary" disabled={sharing} onClick={shareProject}><Link2 className="h-4 w-4" />{sharing ? 'Generating...' : 'Share Link'}</button>}
             {canApply && (hasApplied ? (
               <span className="inline-flex items-center gap-2 rounded-lg bg-emerald-100 px-4 py-2.5 text-sm font-bold text-emerald-700"><CheckCircle2 className="h-4 w-4" />Applied</span>
             ) : (
@@ -67,6 +82,7 @@ export default function DetailPage({ module }) {
       >
         Profile, project history, documents, performance, notes, and operational details.
       </PageHeader>
+      {shareUrl && <div className="card mb-6 p-4"><label htmlFor="project-share-url" className="text-sm font-semibold text-slate-800">Public project link</label><div className="mt-2 flex flex-wrap gap-2"><input id="project-share-url" className="min-w-0 flex-1 rounded-lg border border-slate-200 p-2 text-sm" value={shareUrl} readOnly onFocus={(event) => event.target.select()} /><a className="btn-secondary" href={shareUrl} target="_blank" rel="noreferrer">Open</a></div><p className="mt-2 text-xs text-slate-500">Anyone with this link can view basic project details without logging in. Client Name and Client Rate are hidden.</p></div>}
       {canApply && hasApplied && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3.5 text-emerald-900 shadow-sm">
           <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-emerald-600" />
