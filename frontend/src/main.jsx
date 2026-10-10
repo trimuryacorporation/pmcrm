@@ -22,6 +22,8 @@ import Profile from './pages/Profile.jsx';
 import Portal from './pages/Portal.jsx';
 import Reports from './pages/Reports.jsx';
 import Settings from './pages/Settings.jsx';
+import Sales from './pages/Sales.jsx';
+import { salesRoles } from './data/sales.js';
 import Tasks from './pages/Tasks.jsx';
 import Activity from './pages/Activity.jsx';
 import EmployeeActivity from './pages/EmployeeActivity.jsx';
@@ -47,6 +49,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route element={<AppLayout />}>
 
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route element={<ProtectedRoute roles={salesRoles} />}>
+                <Route path="/sales" element={<Navigate to="/sales/dashboard" replace />} />
+                <Route path="/sales/:page" element={<Sales />} />
+              </Route>
               <Route path="/projects" element={<ModulePage module="projects" />} />
               <Route path="/projects/:id" element={<DetailPage module="projects" />} />
               <Route path="/clients" element={<ModulePage module="clients" />} />

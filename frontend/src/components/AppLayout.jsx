@@ -1,8 +1,11 @@
-import { Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRound, X } from 'lucide-react';
+import { BarChart3, Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRound, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import BrandLogo from './BrandLogo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { navItems } from '../data/modules.js';
+import { salesRoles, salesSections } from '../data/sales.js';
+import { salesApi } from '../sales/api.js';
 import { endpoints } from '../utils/api.js';
 
 const permissionKeyForPath = { '/projects': 'projects', '/clients': 'clients', '/candidates': 'candidates', '/vendors': 'vendors', '/freelancers': 'freelancers', '/employees': 'employees', '/allocation': 'allocation', '/tasks': 'tasks', '/payments': 'payments' };
@@ -18,6 +21,17 @@ export default function AppLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const canViewSales = salesRoles.includes(user?.role);
+  const [salesPermissions, setSalesPermissions] = useState(null);
+  useEffect(() => {
+    if (!canViewSales) return;
+    let current = true;
+    salesApi('/metadata').then(data => { if (current) setSalesPermissions(data.pages); }).catch(() => { if (current) setSalesPermissions({}); });
+    return () => { current = false; };
+  }, [canViewSales, user?._id, pathname]);
+  const visibleSalesSections = salesSections.map(group => ({ ...group, items: group.items.filter(([slug]) => salesPermissions?.[slug]?.view) })).filter(group => group.items.length);
+
 
   function toggleDesktopSidebar() {
     setDesktopSidebarOpen((current) => {
@@ -95,8 +109,8 @@ export default function AppLayout() {
 
   const sidebar = (
     <aside className="flex h-full w-72 flex-col bg-slate-950 text-white">
-      <div className="flex items-center justify-between border-b border-white/10 p-5">
-        <h1 className="font-semibold leading-tight">Enterprise CRM</h1>
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4">
+        <div className="min-w-0 flex-1 rounded-lg bg-white px-2 py-2"><BrandLogo linked/></div>
         <button className="hidden rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white lg:inline-flex" onClick={toggleDesktopSidebar} aria-label="Close sidebar" title="Close sidebar"><PanelLeftClose className="h-4 w-4" /></button>
       </div>
       <nav className="sidebar-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4 pr-2">
@@ -118,6 +132,21 @@ export default function AppLayout() {
             </NavLink>
           ))}</div>
         </div>)}
+        {canViewSales && visibleSalesSections.length>0 && <div className="mt-3 border-t border-white/10 pb-3 pt-3">
+          <div className="flex items-center gap-3 px-3 py-2.5 text-indigo-200">
+            <BarChart3 className="h-4 w-4 shrink-0" />
+            <h2 className="text-xs font-semibold leading-5">SALES &amp; BUSINESS DEVELOPMENT</h2>
+          </div>
+          <div id="sales-navigation" className="ml-4 mt-2 space-y-3 border-l border-white/10 pl-2">
+            {visibleSalesSections.map((group) => <div key={group.label}>
+              <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{group.label}</p>
+              <div className="space-y-1">{group.items.map(([slug, label]) => <NavLink key={slug} to={`/sales/${slug}`} onClick={() => setOpen(false)} className={({ isActive }) => `flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-white text-slate-950' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                <group.icon className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{label}</span>
+              </NavLink>)}</div>
+            </div>)}
+          </div>
+        </div>}
       </nav>
     </aside>
   );

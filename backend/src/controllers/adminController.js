@@ -1,3 +1,6 @@
+import { models as salesModels } from '../sales/models.js';
+import { salesAccessModules, salesAccessActions } from '../sales/config.js';
+import { salesPagePermissions } from '../sales/security.js';
 import User from '../models/User.js';
 import { writeAudit } from '../utils/audit.js';
 
@@ -7,7 +10,15 @@ const publicFields = 'name email role isActive lastLoginAt createdAt';
 export async function listAccessUsers(req, res, next) {
   try {
     const items = await User.find().select(`${publicFields} accessPermissions`).sort({ role: 1, name: 1 });
-    res.json({ items });
+    const savedSales=await salesModels.permissions.find({user:{$in:items.map(user=>user._id)}}).lean();
+    res.json({items:items.map(user=>{
+      const saved=savedSales.find(item=>String(item.user)===String(user._id));
+      const identity={root:administratorRoles.includes(user.role),superAdmin:user.role==='super_admin',role:administratorRoles.includes(user.role)?'Sales Head':saved?.salesRole || 'BDA',grants:saved?.grants || {},accessPermissions:user.accessPermissions};
+      const allowed=['super_admin','admin','employee'].includes(user.role);
+      const effectiveSalesAccess=Object.fromEntries(salesAccessModules.map(module=>[module.key,allowed?salesPagePermissions(identity,module.page):{view:false}]));
+      effectiveSalesAccess.sales=Object.fromEntries(salesAccessActions.map(action=>[action,allowed && (action==='view'?salesPagePermissions(identity,'dashboard').sectionView:salesAccessModules.some(module=>effectiveSalesAccess[module.key][action]))]));
+      return {...user.toObject(),effectiveSalesAccess};
+    })});
   } catch (error) {
     next(error);
   }
@@ -28,7 +39,7 @@ export async function updateUserPermissions(req, res, next) {
     const cleaned = {};
     for (const [resource, actions] of Object.entries(input)) {
       if (!/^[a-z-]+$/.test(resource) || !actions || typeof actions !== 'object') continue;
-      cleaned[resource] = ['view', 'create', 'edit', 'delete'].reduce((result, action) => ({ ...result, [action]: Boolean(actions[action]) }), {});
+      cleaned[resource] = (resource==='sales'||resource.startsWith('sales-')?salesAccessActions:['view', 'create', 'edit', 'delete']).reduce((result, action) => ({ ...result, [action]: Boolean(actions[action]) }), {});
     }
     user.accessPermissions = cleaned;
     await user.save();

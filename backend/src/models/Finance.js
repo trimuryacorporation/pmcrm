@@ -17,6 +17,11 @@ const paymentSchema = new mongoose.Schema(
 
 const invoiceSchema = new mongoose.Schema(
   {
+    direction: { type: String, enum: ['Payable', 'Receivable'], default: 'Payable', index: true },
+    salesDeal: { type: mongoose.Schema.Types.ObjectId, ref: 'Sales_deals', index: true },
+    currency: { type: String, enum: ['INR','USD','EUR','GBP'], default: 'INR' },
+    amountPaid: { type: Number, min: 0, default: 0 },
+    paymentReference: String,
     invoiceNumber: { type: String, required: true, unique: true },
     project: { type: mongoose.Schema.Types.ObjectId, ref: 'Project' },
     payeeName: { type: String, required: true },

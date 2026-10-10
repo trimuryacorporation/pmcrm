@@ -1,6 +1,7 @@
 import { CheckCircle2, ChevronDown, ChevronRight, Cloud, Mail, MessageCircle, Save, TestTube2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import EmailSignatureSettings from '../sales/EmailSignatureSettings.jsx';
 import Loading from '../components/Loading.jsx';
 import PageHeader from '../components/PageHeader.jsx';
 import { endpoints } from '../utils/api.js';
@@ -58,6 +59,7 @@ export default function Settings() {
   return (
     <>
       <PageHeader title="Settings">Secure storage and outbound notification configuration.</PageHeader>
+      <div className="mb-6"><EmailSignatureSettings/></div>
 
       <section className="card p-6">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 pb-5">

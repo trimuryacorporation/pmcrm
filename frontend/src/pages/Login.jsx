@@ -2,6 +2,7 @@ import { LockKeyhole, Mail } from 'lucide-react';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
+import BrandLogo from '../components/BrandLogo.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Login() {
@@ -30,7 +31,7 @@ export default function Login() {
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(59,130,246,.45),transparent_28%),radial-gradient(circle_at_70%_35%,rgba(124,58,237,.35),transparent_28%),linear-gradient(135deg,#0f172a,#111827_55%,#1e1b4b)]" />
           <div className="relative flex h-full flex-col justify-between p-12 text-white">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold">Enterprise CRM</h1>
+              <div className="w-full max-w-sm rounded-xl bg-white px-5 py-4"><BrandLogo/></div>
             </div>
             <div className="max-w-2xl">
               <h2 className="text-5xl font-black leading-tight">Enterprise operations for projects, talent, vendors, tasks, and payments.</h2>
@@ -42,6 +43,7 @@ export default function Login() {
         <section className="grid place-items-center bg-slate-50 p-6">
           <form onSubmit={submit} className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
             <div className="mb-8">
+              <div className="mb-6 max-w-xs"><BrandLogo/></div>
               <p className="text-sm font-semibold uppercase text-indigo-600">Secure Login</p>
               <h2 className="mt-1 text-3xl font-bold text-slate-950">Welcome back</h2>
               <p className="mt-2 text-sm text-slate-500">Use your account credentials to continue.</p>

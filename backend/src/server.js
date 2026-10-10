@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import { errorHandler, notFound } from './middleware/error.js';
 import apiRoutes from './routes/index.js';
+import { startEmailScheduler } from './sales/workflows.js';
 
 dotenv.config();
 
@@ -55,7 +56,7 @@ app.use(errorHandler);
 const port = process.env.PORT || 5000;
 
 connectDB()
-  .then(() => app.listen(port, () => console.log(`API running on http://localhost:${port}`)))
+  .then(() => { startEmailScheduler(); return app.listen(port, () => console.log('API running on port '+port)); })
   .catch((error) => {
     console.error(error);
     process.exit(1);

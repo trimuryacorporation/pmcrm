@@ -1,5 +1,6 @@
 import express from 'express';
 import authRoutes from './authRoutes.js';
+import salesRoutes from '../sales/routes.js';
 import { createProjectShare, getSharedProject, downloadSharedProjectFile } from '../controllers/projectShareController.js';
 import adminRoutes from './adminRoutes.js';
 import { dashboard } from '../controllers/dashboardController.js';
@@ -55,6 +56,7 @@ function collectEndpoints(currentRouter, prefix = '') {
 }
 
 router.use('/auth', authRoutes);
+router.use('/sales', salesRoutes);
 router.get('/public/projects/:token', getSharedProject);
 router.get('/public/projects/:token/files/:fileIndex', downloadSharedProjectFile);
 router.post('/projects/:id/share', protect, authorizeResource('projects', 'view', 'super_admin', 'admin'), createProjectShare);

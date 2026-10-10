@@ -15,7 +15,9 @@ const userSchema = new mongoose.Schema(
         view: { type: Boolean, default: false },
         create: { type: Boolean, default: false },
         edit: { type: Boolean, default: false },
-        delete: { type: Boolean, default: false }
+        delete: { type: Boolean, default: false },
+        export: { type: Boolean, default: undefined },
+        approve: { type: Boolean, default: undefined }
       }, { _id: false }),
       default: undefined
     },
@@ -29,6 +31,10 @@ const userSchema = new mongoose.Schema(
     passwordResetExpires: { type: Date, select: false },
     passwordSetAt: Date,
     avatar: String,
+    salesEmailPreferences: {
+      signature: {type:String,maxlength:5000,default:''},
+      autoInclude: {type:Boolean,default:true}
+    },
     isActive: { type: Boolean, default: true },
     lastLoginAt: Date,
     lastSeenAt: Date,
