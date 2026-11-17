@@ -48,9 +48,9 @@ function duplicateKey(resource,data,creator) {
   const key=resource==='leads'?[String(data.company),String(data.email || data.contactName || '').toLowerCase(),data.serviceCategory || '']:[String(data.name || '').toLowerCase().replace(/\s+/g,' ').trim(),String(data.website || '').toLowerCase().replace(/\/$/,'')];
   return crypto.createHash('sha256').update(JSON.stringify([String(creator),...key])).digest('hex');
 }
-export async function createRecord(req,resource,body,session) {
+export async function createRecord(req,resource,body,session,options={}) {
   requirePermission(req,resource,'create');
-  const data=await validatePayload(req,resource,body,null,session);
+  const data=await validatePayload(req,resource,body,null,session,options);
   if(resource==='leads' && !data.company) {
     requirePermission(req,'companies','create');
     const company=await createRecord(req,'companies',{name:data.name,website:data.website,country:data.country,industry:data.industry,city:data.city,assignedTo:data.assignedTo},session);
@@ -66,12 +66,12 @@ export async function createRecord(req,resource,body,session) {
   if(settings?.followupRules?.autoCreate!==false && ['leads','calls'].includes(resource) && item.nextFollowup)await createRecord(req,'followups',{name:'Follow up '+(item.name || item.recordId),company:item.company,lead:resource==='leads'?item._id:item.lead,contact:item.contact,assignedTo:req.user._id,dueDate:item.nextFollowup.toISOString(),type:'Other',status:'Pending'},session);
   return item;
 }
-export async function updateRecord(req,resource,id,body,session) {
+export async function updateRecord(req,resource,id,body,session,options={}) {
   requirePermission(req,resource,'edit');
   const item=await getRecord(req,resource,id,session);
   if(body.version===undefined || Number(body.version)!==item.version)fail('This record changed. Reload it before saving.',409);
   const before=item.toObject();
-  const data=await validatePayload(req,resource,body,item,session);
+  const data=await validatePayload(req,resource,body,item,session,options);
   if(['proposals','pricing','contracts'].includes(resource))item.history.push({at:new Date(),actor:req.user._id,version:item.version,snapshot:before.history?{...before,history:undefined}:before});
   Object.assign(item,data);
   const settings=await settingsFor(session);

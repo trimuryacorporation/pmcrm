@@ -65,15 +65,24 @@ export async function parseImport(resource,file) {
     headers.forEach((field,column)=>{
       if(!field)return;const raw=sheet.getRow(row).getCell(column).value;
       if(raw===null || raw===undefined || raw==='')return;
-      if(raw && typeof raw==='object' && !(raw instanceof Date))fail('Formulas and rich spreadsheet objects are not accepted (row '+row+')');
+      let value=raw;
+      if(raw && typeof raw==='object' && !(raw instanceof Date)) {
+        const keys=Object.keys(raw);
+        const hyperlinkOnly=keys.every(key=>['text','hyperlink','tooltip'].includes(key))
+          && typeof raw.hyperlink==='string'
+          && (raw.text===undefined || typeof raw.text==='string')
+          && (raw.tooltip===undefined || typeof raw.tooltip==='string');
+        if(!hyperlinkOnly || !['url','email-list'].includes(field.type))fail('Formulas and rich spreadsheet objects are not accepted (row '+row+')');
+        value=field.type==='url'?raw.hyperlink:raw.text || raw.hyperlink.replace(/^mailto:/i,'');
+      }
       used=true;
       if(['email-list','phone-list'].includes(field.type)){
-        const text=String(raw).trim();
+        const text=String(value).trim();
         if(text.startsWith('[')){
           try{data[field.key]=JSON.parse(text);}catch{fail(field.label+' must contain a valid list (row '+row+')');}
           if(!Array.isArray(data[field.key])||data[field.key].some(value=>typeof value!=='string'))fail(field.label+' must contain a list of text values (row '+row+')');
         }else data[field.key]=text.split(/[,\n;]+/).map(value=>value.trim()).filter(Boolean);
-      }else data[field.key]=field.type==='checkbox'?['true','yes','1'].includes(String(raw).toLowerCase()):['date','datetime-local'].includes(field.type)&&raw instanceof Date?raw.toISOString():field.type==='number'?Number(raw):String(raw);
+      }else data[field.key]=field.type==='checkbox'?['true','yes','1'].includes(String(value).toLowerCase()):['date','datetime-local'].includes(field.type)&&value instanceof Date?value.toISOString():field.type==='number'?Number(value):String(value);
     });
     if(used)rows.push({row,data});
   }

@@ -131,8 +131,41 @@ router.get('/:resource/export',wrap(async(req,res)=>{
   res.send(Buffer.from(buffer));
 }));
 router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req,req.params.resource,'create');if(!['leads','contacts','research','linkedin'].includes(req.params.resource))fail('Import is supported for leads, contacts, research and LinkedIn outreach');next();}),formUpload.single('file'),wrap(async(req,res)=>{
-  const rows=await parseImport(req.params.resource,req.file);
-  const results=[];
+  const resource=req.params.resource,rows=await parseImport(resource,req.file);
+  const results=[],linkedinImport=resource==='linkedin';
+  const allLinkedIn=linkedinImport?await models.linkedin.find({}).select('_id createdBy linkedinUrl emails mobileNumbers version').lean():[];
+  const indexedLinkedIn=new Map(allLinkedIn.map(item=>[String(item._id),item]));
+  const accessibleLinkedIn=new Set(allLinkedIn.filter(item=>req.sales.root||String(item.createdBy)===String(req.sales.userId)).map(item=>String(item._id)));
+  const linkedinIdentityIndex=new Map();
+  const normalizeProfile=value=>{
+    if(!value)return '';
+    try{const url=new URL(String(value).trim());return (url.origin+url.pathname.replace(/\/+$/,'')).toLowerCase();}
+    catch{return String(value).trim().toLowerCase();}
+  };
+  const addIdentity=(type,value,id)=>{
+    if(!value)return;
+    let values=linkedinIdentityIndex.get(type);
+    if(!values){values=new Map();linkedinIdentityIndex.set(type,values);}
+    let owners=values.get(value);
+    if(!owners){owners=new Set();values.set(value,owners);}
+    owners.add(id);
+  };
+  const removeIdentity=(type,value,id)=>{
+    const owners=linkedinIdentityIndex.get(type)?.get(value);
+    if(!owners)return;
+    owners.delete(id);
+    if(!owners.size)linkedinIdentityIndex.get(type).delete(value);
+  };
+  const identityValues=item=>[
+    ['url',normalizeProfile(item.linkedinUrl)],
+    ...(item.emails||[]).map(value=>['email',String(value).trim().toLowerCase()]),
+    ...(item.mobileNumbers||[]).map(value=>['phone',String(value).replace(/\D/g,'')]),
+  ].filter(([,value])=>value);
+  const indexItem=(item,remove=false)=>{
+    const id=String(item._id);
+    for(const [type,value] of identityValues(item))(remove?removeIdentity:addIdentity)(type,value,id);
+  };
+  for(const item of allLinkedIn)indexItem(item);
   for(const {row,data} of rows)try{
     for(const field of resources[req.params.resource].fields.filter(field=>field.type==='reference')) {
       const value=data[field.key];
@@ -144,8 +177,43 @@ router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req
       if(matches.length!==1)fail(field.label+' must match one accessible record; use its ID for ambiguous names');
       data[field.key]=String(matches[0]._id);
     }
-    const item=await transaction(session=>createRecord(req,req.params.resource,data,session));results.push({row,id:item._id,status:'Created'});}catch(error){results.push({row,status:'Rejected',message:error.code===11000?'Duplicate record':error.message});}
-  res.json({created:results.filter(row=>row.status==='Created').length,rejected:results.filter(row=>row.status==='Rejected').length,results});
+    if(linkedinImport){
+      const identifiers=identityValues(data);
+      const hasProfileUrl=identifiers.some(([type])=>type==='url');
+      const matchIdentifiers=hasProfileUrl?identifiers.filter(([type])=>type==='url'):identifiers;
+      const matchedIds=new Set(matchIdentifiers.flatMap(([type,value])=>[...(linkedinIdentityIndex.get(type)?.get(value)||[])].filter(id=>accessibleLinkedIn.has(id))));
+      if(matchedIds.size>1)fail('This row matches multiple LinkedIn records. Resolve its profile, email, or mobile number first.');
+      const existingId=matchedIds.values().next().value;
+      for(const [type,value] of identifiers){
+        const conflicts=[...(linkedinIdentityIndex.get(type)?.get(value)||[])].filter(id=>id!==existingId);
+        if(conflicts.length)fail('Duplicate entry: this '+({url:'LinkedIn profile URL',email:'email address',phone:'mobile number'}[type])+' already belongs to another LinkedIn record.');
+      }
+      let item;
+      if(existingId){
+        requirePermission(req,resource,'edit');
+        const existing=indexedLinkedIn.get(existingId);
+        item=await transaction(session=>updateRecord(req,resource,existingId,{...data,version:existing.version},session,{skipLinkedInDuplicateCheck:true}));
+        indexItem(existing,true);
+        const updated=item.toObject();
+        indexedLinkedIn.set(existingId,updated);indexItem(updated);
+        results.push({row,id:item._id,status:'Updated'});
+      }else{
+        item=await transaction(session=>createRecord(req,resource,data,session,{skipLinkedInDuplicateCheck:true}));
+        const created=item.toObject();
+        const id=String(item._id);
+        indexedLinkedIn.set(id,created);accessibleLinkedIn.add(id);indexItem(created);
+        results.push({row,id:item._id,status:'Created'});
+      }
+    }else{
+      const item=await transaction(session=>createRecord(req,resource,data,session));results.push({row,id:item._id,status:'Created'});
+    }
+  }catch(error){results.push({row,status:'Rejected',message:error.code===11000?'Duplicate record':error.message});}
+  res.json({
+    created:results.filter(row=>row.status==='Created').length,
+    updated:results.filter(row=>row.status==='Updated').length,
+    rejected:results.filter(row=>row.status==='Rejected').length,
+    results
+  });
 }));
 router.post('/:resource/bulk',wrap(async(req,res)=>{
   const resource=req.params.resource;requirePermission(req,resource,'edit');

@@ -82,7 +82,7 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   sheet.addRow(['Excel Import Duplicate','https://www.linkedin.com/in/excel-import-duplicate','IMPORT-SHARED@example.test','+1 415 555 0112','Website Design']);
   const file=new FormData();file.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin.xlsx');
   const imported=await request(manager,'/linkedin/import','POST',file);
-  assert.equal(imported.created,1);assert.equal(imported.rejected,1);
+  assert.equal(imported.created,1,JSON.stringify(imported));assert.equal(imported.rejected,1);
   assert.equal(imported.results.find(result=>result.row===2).status,'Created');
   assert.match(imported.results.find(result=>result.row===3).message,/Duplicate entry.*email address/);
   const keyedWorkbook=new ExcelJS.Workbook(),keyedSheet=keyedWorkbook.addWorksheet('LinkedIn');
@@ -116,6 +116,43 @@ test('LinkedIn outreach imports every row when spreadsheet exceeds 1000 records'
   assert.equal(imported.created,1001);
   assert.equal(imported.rejected,0);
   assert.equal(await models.linkedin.countDocuments({name:/^Bulk Import /}),1001);
+});
+
+test('LinkedIn outreach import updates matching profiles and emails instead of rejecting duplicates',async()=>{
+  const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('LinkedIn');
+  sheet.addRow(['Contact Name','LinkedIn Prospect URL','Email Addresses','Notes']);
+  sheet.addRow(['Upsert Contact','https://www.linkedin.com/in/upsert-contact','first-upsert@example.test','First version']);
+  sheet.addRow(['Updated Contact','https://www.linkedin.com/in/upsert-contact','updated-upsert@example.test','Second version']);
+  sheet.addRow(['','','updated-upsert@example.test','Matched by email']);
+  const form=new FormData();
+  form.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin-upsert.xlsx');
+  const imported=await request(manager,'/linkedin/import','POST',form);
+  assert.equal(imported.created,1);
+  assert.equal(imported.updated,2);
+  assert.equal(imported.rejected,0);
+  const record=await models.linkedin.findOne({linkedinUrl:'https://www.linkedin.com/in/upsert-contact'});
+  assert.equal(await models.linkedin.countDocuments({linkedinUrl:'https://www.linkedin.com/in/upsert-contact'}),1);
+  assert.equal(record.name,'Updated Contact');
+  assert.deepEqual(record.emails,['updated-upsert@example.test']);
+  assert.equal(record.notes,'Matched by email');
+});
+
+test('LinkedIn outreach imports Excel hyperlinks in URL and email cells',async()=>{
+  const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('LinkedIn');
+  sheet.addRow(['Contact Name','LinkedIn Prospect URL','Email Addresses']);
+  sheet.addRow([
+    'Hyperlink Import',
+    {text:'LinkedIn profile',hyperlink:'https://www.linkedin.com/in/hyperlink-import'},
+    {text:'hyperlink@example.test',hyperlink:'mailto:hyperlink@example.test'},
+  ]);
+  const form=new FormData();
+  form.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin-hyperlinks.xlsx');
+  const imported=await request(manager,'/linkedin/import','POST',form);
+  assert.equal(imported.created,1);
+  assert.equal(imported.rejected,0);
+  const record=await models.linkedin.findById(imported.results[0].id);
+  assert.equal(record.linkedinUrl,'https://www.linkedin.com/in/hyperlink-import');
+  assert.deepEqual(record.emails,['hyperlink@example.test']);
 });
 
 test('isolated MongoDB: creator isolation ignores assignment and sharing',async()=>{

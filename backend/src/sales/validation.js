@@ -38,7 +38,7 @@ export async function writeSalesAudit(req,resource,item,action,before,session) {
   await SalesAudit.create([{actor:req.user._id,createdBy:item.createdBy,resource,record:item._id,action,company:resource==='companies'?item._id:item.company,lead:resource==='leads'?item._id:item.lead,deal:resource==='deals'?item._id:item.deal,assignedTo:item.assignedTo,sharedWith:item.sharedWith,before,after,ip:req.ip}],{session});
 }
 export async function settingsFor(session) {return models.settings.findOne().session(session || null).lean();}
-export async function validatePayload(req,resource,body,existing,session) {
+export async function validatePayload(req,resource,body,existing,session,options={}) {
   const config=resources[resource], output={};
   if(!body || typeof body!=='object' || Array.isArray(body))fail('A JSON object is required');
   const fields=new Map(config.fields.map(field=>[field.key,field]));
@@ -124,7 +124,7 @@ export async function validatePayload(req,resource,body,existing,session) {
     const normalizedMobileNumbers=mobileNumbers.map(value=>value.replace(/\D/g,''));
     if(new Set(normalizedEmails).size!==normalizedEmails.length)fail('Duplicate entry: an email address is repeated',409);
     if(new Set(normalizedMobileNumbers).size!==normalizedMobileNumbers.length)fail('Duplicate entry: a mobile number is repeated',409);
-    if(normalizedEmails.length||normalizedMobileNumbers.length) {
+    if(!options.skipLinkedInDuplicateCheck && (normalizedEmails.length||normalizedMobileNumbers.length)) {
       const records=await models.linkedin.find(existing?{_id:{$ne:existing._id}}:{}).select('emails mobileNumbers').session(session).lean();
       const knownEmails=new Set(records.flatMap(record=>(record.emails || []).map(value=>value.toLowerCase())));
       const knownMobileNumbers=new Set(records.flatMap(record=>(record.mobileNumbers || []).map(value=>value.replace(/\D/g,''))));
