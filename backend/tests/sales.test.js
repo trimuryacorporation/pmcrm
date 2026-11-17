@@ -59,6 +59,8 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   assert.equal(record.clientCategory,'Website Design');
   assert.ok(Date.parse(record.createdAt)>=startedAt);
   assert.equal(resources.linkedin.fields.some(field=>['company','message','outreachDate','nextFollowup'].includes(field.key)),false);
+  const updated=await request(manager,'/linkedin/'+record._id,'PUT',{version:record.version,emails:[...record.emails,'added@example.test']});
+  assert.deepEqual(updated.emails,['first@example.test','second@example.test','added@example.test']);
   const duplicateEmail=await request(bda,'/linkedin','POST',{name:'Duplicate Email Contact',linkedinUrl:'https://www.linkedin.com/in/duplicate-email',emails:['first@example.test']},409);
   assert.match(duplicateEmail.message,/Duplicate entry.*email address/);
   const duplicateMobile=await request(bda,'/linkedin','POST',{name:'Duplicate Mobile Contact',linkedinUrl:'https://www.linkedin.com/in/duplicate-mobile',mobileNumbers:['+1-202-555-0198']},409);
@@ -69,8 +71,13 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   await request(manager,'/linkedin','POST',{name:'Invalid Phone Contact',linkedinUrl:'https://www.linkedin.com/in/invalid-phone',mobileNumbers:['not-a-number']},400);
   await request(manager,'/linkedin','POST',{name:'Invalid Category Contact',linkedinUrl:'https://www.linkedin.com/in/invalid-category',clientCategory:'Unlisted'},400);
 
-  const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('LinkedIn');
-  sheet.addRow(['Contact Name','LinkedIn Prospect URL','Email Addresses','Mobile Numbers','Client Category']);
+  const templateResponse=await fetch(base+'/linkedin/import/template',{headers:{Authorization:'Bearer '+tokens[String(manager._id)]}});
+  assert.equal(templateResponse.status,200);
+  assert.match(templateResponse.headers.get('content-type'),/spreadsheetml\.sheet/);
+  const workbook=new ExcelJS.Workbook();
+  await workbook.xlsx.load(Buffer.from(await templateResponse.arrayBuffer()));
+  const sheet=workbook.worksheets[0];
+  assert.deepEqual(sheet.getRow(1).values.slice(1,6),['Contact Name','LinkedIn Prospect URL','Email Addresses','Mobile Numbers','Client Category']);
   sheet.addRow(['Excel Import One','https://www.linkedin.com/in/excel-import-one','import-shared@example.test, extra@example.test','+1 415 555 0111','AI']);
   sheet.addRow(['Excel Import Duplicate','https://www.linkedin.com/in/excel-import-duplicate','IMPORT-SHARED@example.test','+1 415 555 0112','Website Design']);
   const file=new FormData();file.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin.xlsx');
@@ -78,6 +85,13 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   assert.equal(imported.created,1);assert.equal(imported.rejected,1);
   assert.equal(imported.results.find(result=>result.row===2).status,'Created');
   assert.match(imported.results.find(result=>result.row===3).message,/Duplicate entry.*email address/);
+  const keyedWorkbook=new ExcelJS.Workbook(),keyedSheet=keyedWorkbook.addWorksheet('LinkedIn');
+  keyedSheet.addRow(['name','linkedinUrl','emails']);
+  keyedSheet.addRow(['Email Key Header','https://www.linkedin.com/in/email-key-header','key-header@example.test']);
+  const keyedFile=new FormData();keyedFile.append('file',new Blob([Buffer.from(await keyedWorkbook.xlsx.writeBuffer())]),'linkedin-key-header.xlsx');
+  const keyedImport=await request(manager,'/linkedin/import','POST',keyedFile);
+  assert.equal(keyedImport.created,1);assert.equal(keyedImport.rejected,0);
+  assert.deepEqual((await models.linkedin.findById(keyedImport.results[0].id)).emails,['key-header@example.test']);
 
   const first=await request(manager,'/linkedin','POST',{name:'Bulk Delete One',linkedinUrl:'https://www.linkedin.com/in/bulk-delete-one'},201);
   const second=await request(manager,'/linkedin','POST',{name:'Bulk Delete Two',linkedinUrl:'https://www.linkedin.com/in/bulk-delete-two'},201);

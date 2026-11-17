@@ -14,7 +14,7 @@ import { createRecord, updateRecord, deleteRecord, listFilter, populateQuery, tr
 import { act, deliverEmail } from './workflows.js';
 import { analytics } from './analytics.js';
 import { salesReport } from './reports.js';
-import { spreadsheet, tablePdf, quotationPdf, parseImport, reportSpreadsheet } from './exports.js';
+import { spreadsheet, importTemplate, tablePdf, quotationPdf, parseImport, reportSpreadsheet } from './exports.js';
 import { writeSalesAudit } from './validation.js';
 import { getCommunicationConfig } from '../config/communications.js';
 const router=express.Router();
@@ -110,6 +110,15 @@ router.patch('/invoices/:id/payment',wrap(async(req,res)=>{
     const current=await Invoice.findById(invoice._id).session(session);if(Number(current.amountPaid || 0)!==Number(invoice.amountPaid || 0))fail('Invoice changed; reload before recording payment',409);
     current.amountPaid=amount;current.paymentReference=String(req.body.paymentReference).slice(0,500);current.paymentStatus=amount===current.amount?'Paid':'Partial';current.paymentDate=new Date();await current.save({session});await writeSalesAudit(req,'deals',won,'record-client-payment',{invoiceId:current._id,amountPaid:invoice.amountPaid},session);
   });res.json({message:'Verified client payment recorded'});
+}));
+router.get('/:resource/import/template',wrap(async(req,res)=>{
+  const {resource}=req.params;
+  if(resource!=='linkedin')fail('Import templates are available for LinkedIn outreach');
+  requirePermission(req,resource,'create');
+  const buffer=await importTemplate(resource);
+  res.set('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    .set('Content-Disposition','attachment; filename="linkedin-outreach-import-template.xlsx"')
+    .send(Buffer.from(buffer));
 }));
 router.get('/:resource/export',wrap(async(req,res)=>{
   const resource=req.params.resource;requirePermission(req,resource,'export');

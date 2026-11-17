@@ -18,6 +18,16 @@ export async function spreadsheet(resource,items,format) {
   sheet.views=[{state:'frozen',ySplit:1}];sheet.autoFilter={from:'A1',to:{row:1,column:fields.length}};
   return format==='csv'?workbook.csv.writeBuffer():workbook.xlsx.writeBuffer();
 }
+export async function importTemplate(resource) {
+  const workbook=new ExcelJS.Workbook();const sheet=workbook.addWorksheet('LinkedIn Outreach');
+  const fields=resources[resource].fields;
+  sheet.columns=fields.map(field=>({header:field.label,key:field.key,width:25}));
+  sheet.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};
+  sheet.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF403DF0'}};
+  sheet.views=[{state:'frozen',ySplit:1}];
+  sheet.autoFilter={from:'A1',to:{row:1,column:fields.length}};
+  return workbook.xlsx.writeBuffer();
+}
 function makePdf(draw) {
   return new Promise((resolve,reject)=>{const doc=new PDFDocument({size:'A4',margin:45});const buffers=[];doc.on('data',chunk=>buffers.push(chunk));doc.on('end',()=>resolve(Buffer.concat(buffers)));doc.on('error',reject);draw(doc);doc.end();});
 }
