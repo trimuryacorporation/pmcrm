@@ -55,37 +55,94 @@ export async function parseImport(resource,file) {
   if(file.originalname.toLowerCase().endsWith('.xlsx'))await workbook.xlsx.load(file.buffer);
   else if(file.originalname.toLowerCase().endsWith('.csv'))await workbook.csv.read(Readable.from(file.buffer));
   else fail('Import accepts CSV and XLSX files');
-  const sheet=workbook.worksheets[0];if(!sheet)fail('The spreadsheet is empty');
-  const lookup=new Map(resources[resource].fields.flatMap(field=>[[field.key.toLowerCase(),field],[field.label.toLowerCase(),field]]));
-  const headers=[];sheet.getRow(1).eachCell((cell,column)=>{const text=valueText(cell.value).trim().toLowerCase();const field=lookup.get(text);if(field)headers[column]=field;});
-  if(!headers.filter(Boolean).length)fail('No recognized headers. Use the exported template column names or field keys.');
-  const rows=[];
-  for(let row=2;row<=sheet.rowCount;row++){
-    const data={};let used=false;
-    headers.forEach((field,column)=>{
-      if(!field)return;const raw=sheet.getRow(row).getCell(column).value;
-      if(raw===null || raw===undefined || raw==='')return;
-      let value=raw;
-      if(raw && typeof raw==='object' && !(raw instanceof Date)) {
-        const keys=Object.keys(raw);
-        const hyperlinkOnly=keys.every(key=>['text','hyperlink','tooltip'].includes(key))
-          && typeof raw.hyperlink==='string'
-          && (raw.text===undefined || typeof raw.text==='string')
-          && (raw.tooltip===undefined || typeof raw.tooltip==='string');
-        if(!hyperlinkOnly || !['url','email-list','text','textarea','select','reference'].includes(field.type))fail('Formulas and rich spreadsheet objects are not accepted (row '+row+')');
-        value=field.type==='url'?raw.hyperlink:raw.text || (field.type==='email-list'?raw.hyperlink.replace(/^mailto:/i,''):raw.hyperlink);
-      }
-      used=true;
-      if(['email-list','phone-list'].includes(field.type)){
-        const text=String(value).trim();
-        if(text.startsWith('[')){
-          try{data[field.key]=JSON.parse(text);}catch{fail(field.label+' must contain a valid list (row '+row+')');}
-          if(!Array.isArray(data[field.key])||data[field.key].some(value=>typeof value!=='string'))fail(field.label+' must contain a list of text values (row '+row+')');
-        }else data[field.key]=text.split(/[,\n;]+/).map(value=>value.trim()).filter(Boolean);
-      }else data[field.key]=field.type==='checkbox'?['true','yes','1'].includes(String(value).toLowerCase()):['date','datetime-local'].includes(field.type)&&value instanceof Date?value.toISOString():field.type==='number'?Number(value):String(value);
-    });
-    if(used)rows.push({row,data});
+  if(!workbook.worksheets.length)fail('The spreadsheet is empty');
+  const normalizeHeader=value=>String(value ?? '').toLowerCase().replace(/[^a-z0-9]/g,'');
+  const lookup=new Map(resources[resource].fields.flatMap(field=>[[normalizeHeader(field.key),field],[normalizeHeader(field.label),field]]));
+  if(resource==='linkedin'){
+    const aliases={
+      name:['contact','contactperson','prospect','prospectname','fullname','personname'],
+      linkedinUrl:['linkedin','linkedinprofile','profile','profileurl','linkedinprofileurl','linkedinaccount'],
+      emails:['email','emailaddress','emailid','emailids','e-mail','e-mailaddress'],
+      mobileNumbers:['mobile','mobilenumber','mobileno','phone','phonenumber','telephone','contactnumber','whatsapp'],
+      clientCategory:['category','clienttype','industry','servicecategory'],
+      connectionStatus:['connection','connectionstate'],
+      replyStatus:['reply','response','responsestatus'],
+      assignedTo:['owner','assignedto','assignedowner','salesowner','assignedbda','bda','salesrepresentative'],
+      notes:['note','remarks','comments','description'],
+    };
+    for(const [key,values] of Object.entries(aliases)){
+      const field=resources.linkedin.fields.find(item=>item.key===key);
+      for(const value of values)lookup.set(normalizeHeader(value),field);
+    }
   }
+  const cellText=value=>{
+    if(typeof value==='string')return value.trim();
+    if(value && typeof value==='object'){
+      if(Array.isArray(value.richText))return value.richText.map(part=>typeof part?.text==='string'?part.text:'').join('').trim();
+      if(typeof value.text==='string')return value.text.trim();
+      if(typeof value.hyperlink==='string')return value.hyperlink.trim();
+    }
+    return valueText(value).trim();
+  };
+  const simpleRichText=value=>Boolean(value&&typeof value==='object'&&Array.isArray(value.richText)
+    && Object.keys(value).every(key=>key==='richText')
+    && value.richText.every(part=>part&&typeof part.text==='string'
+      && Object.keys(part).every(key=>['text','font'].includes(key))
+      && (part.font===undefined||(part.font&&typeof part.font==='object'&&!Array.isArray(part.font)))));
+  const rows=[];
+  let recognizedHeaders=false;
+  for(const sheet of workbook.worksheets){
+    let headerRow=0,headers=[];
+    for(let row=1;row<=Math.min(sheet.rowCount,20);row++){
+      const candidate=[];
+      sheet.getRow(row).eachCell((cell,column)=>{
+        const field=lookup.get(normalizeHeader(cellText(cell.value)));
+        if(field)candidate[column]=field;
+      });
+      if(candidate.filter(Boolean).length>headers.filter(Boolean).length){headerRow=row;headers=candidate;}
+    }
+    if(!headerRow)continue;
+    recognizedHeaders=true;
+    for(let row=headerRow+1;row<=sheet.rowCount;row++){
+      const data={};let used=false;
+      headers.forEach((field,column)=>{
+        if(!field)return;
+        const raw=sheet.getRow(row).getCell(column).value;
+        if(raw===null || raw===undefined || raw==='')return;
+        let value=raw;
+        if(raw && typeof raw==='object' && !(raw instanceof Date)) {
+          if(Array.isArray(raw.richText)){
+            if(!simpleRichText(raw))fail('Formatted spreadsheet text is not supported ('+sheet.name+', row '+row+')');
+            value=raw.richText.map(part=>part.text).join('');
+          }else{
+            const keys=Object.keys(raw);
+            const hyperlinkOnly=keys.every(key=>['text','hyperlink','tooltip'].includes(key))
+              && typeof raw.hyperlink==='string'
+              && (raw.text===undefined || typeof raw.text==='string' || simpleRichText(raw.text))
+              && (raw.tooltip===undefined || typeof raw.tooltip==='string');
+            if(!hyperlinkOnly || !['url','email-list','phone-list','text','textarea','select','reference'].includes(field.type))fail('Formulas and rich spreadsheet objects are not accepted ('+sheet.name+', row '+row+')');
+            value=field.type==='url'?raw.hyperlink:cellText(raw.text) || (field.type==='email-list'?raw.hyperlink.replace(/^mailto:/i,''):field.type==='phone-list'?raw.hyperlink.replace(/^tel:/i,''):raw.hyperlink);
+          }
+        }
+        used=true;
+        if(['email-list','phone-list'].includes(field.type)){
+          const text=String(value).trim();
+          if(text.startsWith('[')){
+            try{data[field.key]=JSON.parse(text);}catch{fail(field.label+' must contain a valid list ('+sheet.name+', row '+row+')');}
+            if(!Array.isArray(data[field.key])||data[field.key].some(value=>typeof value!=='string'))fail(field.label+' must contain a list of text values ('+sheet.name+', row '+row+')');
+          }else {
+            const values=text.split(/[,\n;]+/).map(value=>value.trim()).filter(Boolean);
+            data[field.key]=[...(data[field.key] || []),...values];
+          }
+        }else if(field.type==='checkbox')data[field.key]=['true','yes','1'].includes(String(value).toLowerCase());
+        else if(['date','datetime-local'].includes(field.type)&&value instanceof Date)data[field.key]=value.toISOString();
+        else if(field.type==='number')data[field.key]=Number(value);
+        else data[field.key]=String(value);
+      });
+      if(used)rows.push({row,sheet:sheet.name,data});
+    }
+  }
+  if(!recognizedHeaders)fail('No recognized headers. Use LinkedIn/contact, profile URL, email, phone, owner, or the template column names.');
   return rows;
 }
 export async function reportSpreadsheet(fields,rows,format) {

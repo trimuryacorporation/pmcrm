@@ -71,7 +71,7 @@ export async function validatePayload(req,resource,body,existing,session,options
         if(field.ref==='users') {
           const user=await User.findOne({_id:id,isActive:true,role:{$in:['super_admin','admin','employee']}}).session(session).select('_id');
           if(!user)fail('Invalid active CRM user');
-          if(key==='assignedTo' && String(id)!==req.sales.userId)fail('You cannot assign this record to another user',403);
+          if(key==='assignedTo' && String(id)!==req.sales.userId && !(options.allowAssignment&&req.sales.root))fail('You cannot assign this record to another user',403);
           if(key!=='assignedTo' && !req.sales.root && String(id)!==req.sales.userId)fail('User reference access denied',403);
         } else if(field.ref==='employees') {
           if(!req.sales.root && String(id)!==String(req.user.linkedEmployee))fail('Employee reference access denied',403);
@@ -141,7 +141,7 @@ export async function validatePayload(req,resource,body,existing,session,options
   const merged={...(existing?.toObject() || {}),...output};
   for(const field of config.fields)if(field.required && !merged[field.key] && !(resource==='leads' && field.key==='company' && merged.name))fail(field.label+' is required');
   if(!existing) {
-    if(!['settings','permissions'].includes(resource))output.assignedTo = req.user._id;
+    if(!['settings','permissions'].includes(resource)&&!output.assignedTo)output.assignedTo = req.user._id;
     const defaultStatus={leads:'New',qualifications:'Pending',emails:'Draft',meetings:'Scheduled',followups:'Pending',proposals:'Draft',pricing:'Draft',contracts:'Draft',onboarding:'In Progress',handovers:'Draft',team:'Active'};
     output.status ||= defaultStatus[resource];
     if(!output.status)delete output.status;
@@ -149,7 +149,7 @@ export async function validatePayload(req,resource,body,existing,session,options
     if(config.fields.some(field=>field.key==='currency'))output.currency ||= settings?.currency || 'INR';
     if(['meetings','contacts'].includes(resource))output.timeZone ||= settings?.timeZone || 'UTC';
   }
-  if(existing && output.assignedTo && String(output.assignedTo)!==String(existing.assignedTo) && !permitted(req,resource,'assign'))fail('Assignment permission required',403);
+  if(existing && output.assignedTo && String(output.assignedTo)!==String(existing.assignedTo) && !permitted(req,resource,'assign') && !(options.allowAssignment&&req.sales.root))fail('Assignment permission required',403);
   for(const related of ['lead','contact','deal']) {
     if(merged[related] && merged.company){const linked=await getRecord(req,related==='lead'?'leads':related==='contact'?'contacts':'deals',merged[related],session);if(String(linked.company)!==String(merged.company))fail('Related '+related+' belongs to a different company');}
   }

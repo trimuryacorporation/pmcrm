@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import { readFile } from 'node:fs/promises';
 import ApiKey from '../src/models/ApiKey.js';
 import test, {before,after} from 'node:test';
 import mongoose from 'mongoose';
@@ -21,6 +22,7 @@ import { quoteTotal,checkTransition,completion } from '../src/sales/validation.j
 import { escapeRegex } from '../src/sales/store.js';
 import { permissionsFor,scopeFor } from '../src/sales/security.js';
 import { resources,navigation } from '../src/sales/config.js';
+import { parseImport } from '../src/sales/exports.js';
 
 let repl,server,base,manager,bda,other,tokens,employee,superAdmin;
 before(async()=>{
@@ -154,6 +156,64 @@ test('LinkedIn outreach imports Excel hyperlinks in URL and email cells',async()
   assert.equal(record.name,'Hyperlink Import');
   assert.equal(record.linkedinUrl,'https://www.linkedin.com/in/hyperlink-import');
   assert.deepEqual(record.emails,['hyperlink@example.test']);
+});
+
+test('LinkedIn outreach imports alternate headers and records from every sheet',async()=>{
+  const workbook=new ExcelJS.Workbook(),first=workbook.addWorksheet('First');
+  first.addRow(['LinkedIn Outreach']);
+  first.addRow([]);
+  first.addRow(['Prospect Name','Profile URL','','E-mail','Phone Number','Owner']);
+  first.addRow([
+    {richText:[{text:'Styled '},{text:'Contact',font:{bold:true}}]},
+    {text:'Profile',hyperlink:'https://www.linkedin.com/in/multi-sheet-one'},
+    null,
+    {text:'first-multi-sheet@example.test',hyperlink:'mailto:first-multi-sheet@example.test'},
+    {text:'+1 415 555 0161',hyperlink:'tel:+14155550161'},
+    'Test Manager',
+  ]);
+  first.addRow([]);
+  const second=workbook.addWorksheet('Second');
+  second.addRow(['Contact','LinkedIn','Mobile']);
+  second.addRow(['Second Sheet Contact','https://www.linkedin.com/in/multi-sheet-two','+1 415 555 0162']);
+  const form=new FormData();
+  form.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin-multiple-sheets.xlsx');
+  const imported=await request(manager,'/linkedin/import','POST',form);
+  assert.equal(imported.created,2);
+  assert.equal(imported.updated,0);
+  assert.equal(imported.rejected,0);
+  const firstRecord=await models.linkedin.findOne({linkedinUrl:'https://www.linkedin.com/in/multi-sheet-one'});
+  const secondRecord=await models.linkedin.findOne({linkedinUrl:'https://www.linkedin.com/in/multi-sheet-two'});
+  assert.equal(firstRecord.name,'Styled Contact');
+  assert.deepEqual(firstRecord.emails,['first-multi-sheet@example.test']);
+  assert.deepEqual(firstRecord.mobileNumbers,['+1 415 555 0161']);
+  assert.equal(String(firstRecord.assignedTo),String(manager._id));
+  assert.equal(secondRecord.name,'Second Sheet Contact');
+  assert.ok(imported.results.some(row=>row.sheet==='First'));
+  assert.ok(imported.results.some(row=>row.sheet==='Second'));
+});
+
+test('LinkedIn outreach uploads the supplied workbook end to end when fixture path is set',{skip:!process.env.LINKEDIN_IMPORT_FIXTURE},async()=>{
+  const filePath=process.env.LINKEDIN_IMPORT_FIXTURE;
+  const buffer=await readFile(filePath),rows=await parseImport('linkedin',{originalname:'linkedin-fixture.xlsx',buffer});
+  const ownerNames=new Set(rows.map(row=>row.data.assignedTo).filter(value=>typeof value==='string'&&value.trim()));
+  for(const name of ownerNames){
+    if(await User.exists({name}))continue;
+    const email='fixture-owner-'+crypto.createHash('sha256').update(name).digest('hex').slice(0,20)+'@sales.test';
+    await User.create({name,email,password:'isolated-fixture-owner-password'});
+  }
+  const ownerMatchCounts=new Map(),rowsPerOwnerMatchCount=new Map();
+  for(const name of ownerNames)ownerMatchCounts.set(name,await User.countDocuments({isActive:true,role:{$in:['super_admin','admin','employee']},name}));
+  for(const row of rows){
+    const count=ownerMatchCounts.get(row.data.assignedTo)||0;
+    rowsPerOwnerMatchCount.set(count,(rowsPerOwnerMatchCount.get(count)||0)+1);
+  }
+  const form=new FormData();
+  form.append('file',new Blob([buffer]),'linkedin-fixture.xlsx');
+  const imported=await request(manager,'/linkedin/import','POST',form);
+  assert.equal(imported.results.length,3328);
+  assert.equal(imported.created+imported.updated+imported.rejected,3328);
+  const rejectionReasons=Object.fromEntries(imported.results.filter(row=>row.status==='Rejected').reduce((counts,row)=>counts.set(row.message,(counts.get(row.message)||0)+1),new Map()));
+  console.log(JSON.stringify({fixtureRows:imported.results.length,distinctOwnerNames:ownerNames.size,ownerNameMatchDistribution:Object.fromEntries([...ownerMatchCounts.values()].reduce((counts,value)=>counts.set(value,(counts.get(value)||0)+1),new Map())),rowsPerOwnerMatchCount:Object.fromEntries(rowsPerOwnerMatchCount),created:imported.created,updated:imported.updated,rejected:imported.rejected,rejectionReasons}));
 });
 
 test('isolated MongoDB: creator isolation ignores assignment and sharing',async()=>{

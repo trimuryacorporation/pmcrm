@@ -166,9 +166,11 @@ router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req
     for(const [type,value] of identityValues(item))(remove?removeIdentity:addIdentity)(type,value,id);
   };
   for(const item of allLinkedIn)indexItem(item);
-  for(const {row,data} of rows)try{
+  for(const {row,sheet,data} of rows)try{
+    let ownerWarning='';
     for(const field of resources[req.params.resource].fields.filter(field=>field.type==='reference')) {
       const value=data[field.key];
+      if(field.key==='assignedTo'&&!req.sales.root){delete data.assignedTo;ownerWarning='Assigned owner not applied; record assigned to the importing user.';continue;}
       if(!value || mongoose.isValidObjectId(value))continue;
       let matches;
       if(field.ref==='users')matches=await User.find({$and:[req.sales.root?{isActive:true}:{_id:req.user._id},{$or:[{name:{$regex:'^'+escapeRegex(value)+'$',$options:'i'}},{email:value.toLowerCase()}]}]}).limit(2);
@@ -192,22 +194,22 @@ router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req
       if(existingId){
         requirePermission(req,resource,'edit');
         const existing=indexedLinkedIn.get(existingId);
-        item=await transaction(session=>updateRecord(req,resource,existingId,{...data,version:existing.version},session,{skipLinkedInDuplicateCheck:true}));
+        item=await transaction(session=>updateRecord(req,resource,existingId,{...data,version:existing.version},session,{allowAssignment:req.sales.root,skipLinkedInDuplicateCheck:true}));
         indexItem(existing,true);
         const updated=item.toObject();
         indexedLinkedIn.set(existingId,updated);indexItem(updated);
-        results.push({row,id:item._id,status:'Updated'});
+        results.push({row,sheet,id:item._id,status:'Updated',...(ownerWarning?{warning:ownerWarning}:{})});
       }else{
-        item=await transaction(session=>createRecord(req,resource,data,session,{skipLinkedInDuplicateCheck:true}));
+        item=await transaction(session=>createRecord(req,resource,data,session,{allowAssignment:req.sales.root,skipLinkedInDuplicateCheck:true}));
         const created=item.toObject();
         const id=String(item._id);
         indexedLinkedIn.set(id,created);accessibleLinkedIn.add(id);indexItem(created);
-        results.push({row,id:item._id,status:'Created'});
+        results.push({row,sheet,id:item._id,status:'Created',...(ownerWarning?{warning:ownerWarning}:{})});
       }
     }else{
-      const item=await transaction(session=>createRecord(req,resource,data,session));results.push({row,id:item._id,status:'Created'});
+      const item=await transaction(session=>createRecord(req,resource,data,session));results.push({row,sheet,id:item._id,status:'Created'});
     }
-  }catch(error){results.push({row,status:'Rejected',message:error.code===11000?'Duplicate record':error.message});}
+  }catch(error){results.push({row,sheet,status:'Rejected',message:error.code===11000?'Duplicate record':error.message});}
   res.json({
     created:results.filter(row=>row.status==='Created').length,
     updated:results.filter(row=>row.status==='Updated').length,
