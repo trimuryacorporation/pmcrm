@@ -141,7 +141,7 @@ test('LinkedIn outreach imports Excel hyperlinks in URL and email cells',async()
   const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('LinkedIn');
   sheet.addRow(['Contact Name','LinkedIn Prospect URL','Email Addresses']);
   sheet.addRow([
-    'Hyperlink Import',
+    {text:'Hyperlink Import',hyperlink:'https://example.test/contact-name'},
     {text:'LinkedIn profile',hyperlink:'https://www.linkedin.com/in/hyperlink-import'},
     {text:'hyperlink@example.test',hyperlink:'mailto:hyperlink@example.test'},
   ]);
@@ -151,6 +151,7 @@ test('LinkedIn outreach imports Excel hyperlinks in URL and email cells',async()
   assert.equal(imported.created,1);
   assert.equal(imported.rejected,0);
   const record=await models.linkedin.findById(imported.results[0].id);
+  assert.equal(record.name,'Hyperlink Import');
   assert.equal(record.linkedinUrl,'https://www.linkedin.com/in/hyperlink-import');
   assert.deepEqual(record.emails,['hyperlink@example.test']);
 });

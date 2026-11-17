@@ -72,8 +72,8 @@ export async function parseImport(resource,file) {
           && typeof raw.hyperlink==='string'
           && (raw.text===undefined || typeof raw.text==='string')
           && (raw.tooltip===undefined || typeof raw.tooltip==='string');
-        if(!hyperlinkOnly || !['url','email-list'].includes(field.type))fail('Formulas and rich spreadsheet objects are not accepted (row '+row+')');
-        value=field.type==='url'?raw.hyperlink:raw.text || raw.hyperlink.replace(/^mailto:/i,'');
+        if(!hyperlinkOnly || !['url','email-list','text','textarea','select','reference'].includes(field.type))fail('Formulas and rich spreadsheet objects are not accepted (row '+row+')');
+        value=field.type==='url'?raw.hyperlink:raw.text || (field.type==='email-list'?raw.hyperlink.replace(/^mailto:/i,''):raw.hyperlink);
       }
       used=true;
       if(['email-list','phone-list'].includes(field.type)){
