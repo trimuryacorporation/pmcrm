@@ -104,6 +104,20 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   assert.equal(await models.linkedin.countDocuments({_id:{$in:selected.map(item=>item.id)}}),0);
 });
 
+test('LinkedIn outreach imports every row when spreadsheet exceeds 1000 records',async()=>{
+  const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('LinkedIn');
+  sheet.addRow(['Contact Name','LinkedIn Prospect URL']);
+  for(let index=1;index<=1001;index++){
+    sheet.addRow(['Bulk Import '+index,'https://www.linkedin.com/in/bulk-import-'+index]);
+  }
+  const form=new FormData();
+  form.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin-bulk.xlsx');
+  const imported=await request(manager,'/linkedin/import','POST',form);
+  assert.equal(imported.created,1001);
+  assert.equal(imported.rejected,0);
+  assert.equal(await models.linkedin.countDocuments({name:/^Bulk Import /}),1001);
+});
+
 test('isolated MongoDB: creator isolation ignores assignment and sharing',async()=>{
 const lead=await request(bda,'/leads','POST',{name:'Ownership Fixture',email:'own@fixture.test',serviceCategory:'Transcription'},201);
 assert.equal(String(lead.assignedTo),String(bda._id));

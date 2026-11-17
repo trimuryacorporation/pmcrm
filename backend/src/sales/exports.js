@@ -56,7 +56,6 @@ export async function parseImport(resource,file) {
   else if(file.originalname.toLowerCase().endsWith('.csv'))await workbook.csv.read(Readable.from(file.buffer));
   else fail('Import accepts CSV and XLSX files');
   const sheet=workbook.worksheets[0];if(!sheet)fail('The spreadsheet is empty');
-  if(sheet.rowCount>1001)fail('Import at most 1000 records at a time');
   const lookup=new Map(resources[resource].fields.flatMap(field=>[[field.key.toLowerCase(),field],[field.label.toLowerCase(),field]]));
   const headers=[];sheet.getRow(1).eachCell((cell,column)=>{const text=valueText(cell.value).trim().toLowerCase();const field=lookup.get(text);if(field)headers[column]=field;});
   if(!headers.filter(Boolean).length)fail('No recognized headers. Use the exported template column names or field keys.');
