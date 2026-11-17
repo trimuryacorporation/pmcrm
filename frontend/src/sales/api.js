@@ -1,6 +1,26 @@
 import { api } from '../utils/api.js';
 const salesHeaders=()=>({'X-Sales-Page':window.location.pathname.split('/')[2] || 'dashboard'});
 export const salesApi=(path,method='GET',body)=>api('/sales'+path,{method,headers:salesHeaders(),...(body===undefined?{}:{body:body instanceof FormData?body:JSON.stringify(body)})});
+export function salesUpload(path,body,onProgress) {
+  const base=(import.meta.env.VITE_API_URL?.trim().replace(/\/$/,'') || (['localhost','127.0.0.1'].includes(window.location.hostname)?'http://localhost:5000/api':'/api'));
+  return new Promise((resolve,reject)=>{
+    const request=new XMLHttpRequest();
+    request.open('POST',base+'/sales'+path);
+    request.setRequestHeader('X-Sales-Page',window.location.pathname.split('/')[2] || 'dashboard');
+    const token=localStorage.getItem('trimurya_token');
+    if(token)request.setRequestHeader('Authorization','Bearer '+token);
+    request.upload.onprogress=event=>{if(event.lengthComputable)onProgress(Math.round(event.loaded/event.total*100));};
+    request.onload=()=>{
+      let data;
+      try{data=request.responseText?JSON.parse(request.responseText):{};}catch{return reject(new Error('Server returned an invalid response'));}
+      if(request.status<200||request.status>=300)return reject(new Error(data.message || 'Upload failed'));
+      resolve(data);
+    };
+    request.onerror=()=>reject(new Error('Network error while uploading file'));
+    request.onabort=()=>reject(new Error('Upload cancelled'));
+    request.send(body);
+  });
+}
 export const queryString=(values)=>new URLSearchParams(Object.entries(values).filter(([,value])=>value!==''&&value!==undefined&&value!==null)).toString();
 export async function salesDownload(path,name,preview=false) {
   const base=(import.meta.env.VITE_API_URL?.trim().replace(/\/$/,'') || (['localhost','127.0.0.1'].includes(window.location.hostname)?'http://localhost:5000/api':'/api'));

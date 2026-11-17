@@ -9,9 +9,12 @@ export function valueText(value) {
   if(value && typeof value==='object')return value.name || value.recordId || String(value._id || JSON.stringify(value));
   return String(value ?? '');
 }
+export function exportFields(resource) {
+  return [{key:'recordId',label:'Record ID'},...resources[resource].fields,...(resource==='linkedin'?[{key:'createdBy',label:'Added By'}]:[]),{key:'createdAt',label:'Created Date'}];
+}
 export async function spreadsheet(resource,items,format) {
   const workbook=new ExcelJS.Workbook();const sheet=workbook.addWorksheet('Sales');
-  const fields=[{key:'recordId',label:'Record ID'},...resources[resource].fields,{key:'createdAt',label:'Created Date'}];
+  const fields=exportFields(resource);
   sheet.columns=fields.map(field=>({header:field.label,key:field.key,width:25}));
   for(const item of items)sheet.addRow(Object.fromEntries(fields.map(field=>[field.key,safeText(valueText(item[field.key]))])));
   sheet.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};sheet.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF403DF0'}};
@@ -20,7 +23,12 @@ export async function spreadsheet(resource,items,format) {
 }
 export async function importTemplate(resource) {
   const workbook=new ExcelJS.Workbook();const sheet=workbook.addWorksheet('LinkedIn Outreach');
-  const fields=resources[resource].fields;
+  const fields=[
+    {key:'name',label:'Name'},
+    {key:'linkedinUrl',label:'LinkedIn Profile Link'},
+    {key:'emails',label:'Email ID(s)'},
+    {key:'clientCategory',label:'Category'},
+  ];
   sheet.columns=fields.map(field=>({header:field.label,key:field.key,width:25}));
   sheet.getRow(1).font={bold:true,color:{argb:'FFFFFFFF'}};
   sheet.getRow(1).fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF403DF0'}};
@@ -61,10 +69,10 @@ export async function parseImport(resource,file) {
   if(resource==='linkedin'){
     const aliases={
       name:['contact','contactperson','prospect','prospectname','fullname','personname'],
-      linkedinUrl:['linkedin','linkedinprofile','profile','profileurl','linkedinprofileurl','linkedinaccount'],
+      linkedinUrl:['link','url','linkedin','linkedinprofile','profile','profileurl','linkedinprofileurl','linkedinprofilelink','linkedinaccount'],
       emails:['email','emailaddress','emailid','emailids','e-mail','e-mailaddress'],
       mobileNumbers:['mobile','mobilenumber','mobileno','phone','phonenumber','telephone','contactnumber','whatsapp'],
-      clientCategory:['category','clienttype','industry','servicecategory'],
+      clientCategory:['category','categories','clienttype','industry','servicecategory'],
       connectionStatus:['connection','connectionstate'],
       replyStatus:['reply','response','responsestatus'],
       assignedTo:['owner','assignedto','assignedowner','salesowner','assignedbda','bda','salesrepresentative'],

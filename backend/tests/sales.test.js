@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
+import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import ApiKey from '../src/models/ApiKey.js';
 import test, {before,after} from 'node:test';
@@ -24,11 +25,15 @@ import { permissionsFor,scopeFor } from '../src/sales/security.js';
 import { resources,navigation } from '../src/sales/config.js';
 import { parseImport } from '../src/sales/exports.js';
 
-let repl,server,base,manager,bda,other,tokens,employee,superAdmin;
+let repl,server,r2Server,base,manager,bda,other,tokens,employee,superAdmin;
+const r2Uploads=[];
 before(async()=>{
   process.env.JWT_SECRET='isolated-sales-test-secret';
   process.env.SALES_RATE_LIMIT='10000';
   process.env.SMTP_HOST='test.smtp.invalid';process.env.SMTP_USER='test@example.invalid';process.env.SMTP_FROM='test@example.invalid';process.env.SMTP_PASS='test-fixture-only';
+  process.env.R2_ACCOUNT_ID='test-account';process.env.R2_ACCESS_KEY_ID='test-access-key';process.env.R2_SECRET_ACCESS_KEY='test-secret-key';process.env.R2_BUCKET='test-bucket';
+  r2Server=http.createServer((req,res)=>{const chunks=[];req.on('data',chunk=>chunks.push(chunk));req.on('end',()=>{r2Uploads.push({url:req.url,headers:req.headers,body:Buffer.concat(chunks)});res.writeHead(200,{'ETag':'"test-etag"'});res.end();});});
+  r2Server.listen(0,'127.0.0.1');await new Promise(resolve=>r2Server.once('listening',resolve));process.env.R2_ENDPOINT='http://127.0.0.1:'+r2Server.address().port;
   repl=await MongoMemoryReplSet.create({replSet:{count:1,launchTimeout:120000},instanceOpts:[{launchTimeout:120000}],binary:{version:process.env.SALES_TEST_MONGO_VERSION || '7.0.14'}});
   await mongoose.connect(repl.getUri('sales_workflow_tests'));
   await Promise.all([...Object.values(models),SalesAudit,User,Employee,Project,Invoice].map(model=>model.init()));
@@ -39,7 +44,7 @@ before(async()=>{
   const app=express();app.use(express.json());app.use('/api/sales',routes);app.use('/api/administrators',adminRoutes);app.use(errorHandler);
   server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));base='http://127.0.0.1:'+server.address().port+'/api/sales';
 });
-after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));await mongoose.disconnect();if(repl)await repl.stop();});
+after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));if(r2Server)await new Promise(resolve=>r2Server.close(resolve));await mongoose.disconnect();if(repl)await repl.stop();});
 async function request(user,path,method='GET',body,status=200) {
   const response=await fetch(base+path,{method,headers:{Authorization:'Bearer '+tokens[String(user._id)],...(body instanceof FormData?{}:{'Content-Type':'application/json'})},...(body?{body:body instanceof FormData?body:JSON.stringify(body)}:{})});
   const data=await response.json();
@@ -79,14 +84,27 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   const workbook=new ExcelJS.Workbook();
   await workbook.xlsx.load(Buffer.from(await templateResponse.arrayBuffer()));
   const sheet=workbook.worksheets[0];
-  assert.deepEqual(sheet.getRow(1).values.slice(1,6),['Contact Name','LinkedIn Prospect URL','Email Addresses','Mobile Numbers','Client Category']);
-  sheet.addRow(['Excel Import One','https://www.linkedin.com/in/excel-import-one','import-shared@example.test, extra@example.test','+1 415 555 0111','AI']);
-  sheet.addRow(['Excel Import Duplicate','https://www.linkedin.com/in/excel-import-duplicate','IMPORT-SHARED@example.test','+1 415 555 0112','Website Design']);
+  assert.deepEqual(sheet.getRow(1).values.slice(1,5),['Name','LinkedIn Profile Link','Email ID(s)','Category']);
+  sheet.addRow(['Excel Import One','https://www.linkedin.com/in/excel-import-one','import-shared@example.test, extra@example.test','AI']);
+  sheet.addRow(['Excel Import Duplicate','https://www.linkedin.com/in/excel-import-duplicate','IMPORT-SHARED@example.test','Website Design']);
   const file=new FormData();file.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin.xlsx');
+  const archivesBefore=r2Uploads.length;
   const imported=await request(manager,'/linkedin/import','POST',file);
   assert.equal(imported.created,1,JSON.stringify(imported));assert.equal(imported.rejected,1);
   assert.equal(imported.results.find(result=>result.row===2).status,'Created');
   assert.match(imported.results.find(result=>result.row===3).message,/Duplicate entry.*email address/);
+  assert.equal(r2Uploads.length,archivesBefore+1);
+  const archived=r2Uploads[r2Uploads.length-1];
+  assert.match(archived.url,/^\/pmcrm\/linkedin-data\/\d{4}-\d{2}-\d{2}\/[0-9a-f-]+\.xlsx(?:\?|$)/);
+  assert.match(archived.headers['content-type'],/spreadsheetml\.sheet/);
+  assert.equal(archived.body.subarray(0,2).toString(),'PK');
+  const listed=await request(manager,'/linkedin?q=Excel Import One');
+  assert.equal(listed.items[0].createdBy.name,'Test Manager');
+  const exportResponse=await fetch(base+'/linkedin/export?format=csv',{headers:{Authorization:'Bearer '+tokens[String(manager._id)]}});
+  assert.equal(exportResponse.status,200);
+  const exported=await exportResponse.text();
+  assert.match(exported,/Added By/);
+  assert.match(exported,/Test Manager/);
   const keyedWorkbook=new ExcelJS.Workbook(),keyedSheet=keyedWorkbook.addWorksheet('LinkedIn');
   keyedSheet.addRow(['name','linkedinUrl','emails']);
   keyedSheet.addRow(['Email Key Header','https://www.linkedin.com/in/email-key-header','key-header@example.test']);

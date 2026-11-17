@@ -22,9 +22,10 @@ export async function getR2Config() {
     accountId: process.env.R2_ACCOUNT_ID,
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-    bucket: process.env.R2_BUCKET
+    bucket: process.env.R2_BUCKET,
+    endpoint: process.env.R2_ENDPOINT
   };
-  const missing = Object.entries(config).filter(([, value]) => !value).map(([name]) => name);
+  const missing = ['accountId','accessKeyId','secretAccessKey','bucket'].filter(name => !config[name]);
   if (missing.length) throw new Error(`Cloudflare R2 is not configured. Open CRM Settings and add: ${missing.join(', ')}`);
   return config;
 }
@@ -32,7 +33,8 @@ export async function getR2Config() {
 function r2Client(config) {
   return new S3Client({
     region: 'auto',
-    endpoint: `https://${config.accountId}.r2.cloudflarestorage.com`,
+    endpoint: config.endpoint || `https://${config.accountId}.r2.cloudflarestorage.com`,
+    forcePathStyle: Boolean(config.endpoint),
     credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey }
   });
 }
@@ -40,6 +42,11 @@ function r2Client(config) {
 export async function putR2Object({ key, body, contentType, metadata }) {
   const config = await getR2Config();
   return r2Client(config).send(new PutObjectCommand({ Bucket: config.bucket, Key: key, Body: body, ContentType: contentType, Metadata: metadata }));
+}
+
+export async function putR2ObjectToBucket(bucket, { key, body, contentType, metadata }) {
+  const config = await getR2Config();
+  return r2Client(config).send(new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType, Metadata: metadata }));
 }
 
 export async function getR2Object(key) {

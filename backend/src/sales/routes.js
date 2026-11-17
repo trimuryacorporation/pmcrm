@@ -14,9 +14,10 @@ import { createRecord, updateRecord, deleteRecord, listFilter, populateQuery, tr
 import { act, deliverEmail } from './workflows.js';
 import { analytics } from './analytics.js';
 import { salesReport } from './reports.js';
-import { spreadsheet, importTemplate, tablePdf, quotationPdf, parseImport, reportSpreadsheet } from './exports.js';
+import { spreadsheet, importTemplate, tablePdf, quotationPdf, parseImport, reportSpreadsheet, exportFields } from './exports.js';
 import { writeSalesAudit } from './validation.js';
 import { getCommunicationConfig } from '../config/communications.js';
+import { putR2ObjectToBucket } from '../config/r2.js';
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(error=>{
   if(error.name==='ValidationError' || error.name==='CastError' || error.name==='StrictModeError' || error.name==='SyntaxError')error.statusCode=400;
@@ -125,13 +126,19 @@ router.get('/:resource/export',wrap(async(req,res)=>{
   const items=await populateQuery(models[resource].find(await listFilter(req,resource)).sort({createdAt:-1}).limit(10001),resource).lean();
   if(items.length>10000)fail('Filter the export to at most 10,000 records');
   const format=req.query.format || 'xlsx';if(!['xlsx','csv','pdf'].includes(format))fail('Unsupported export format');
-  const buffer=format==='pdf'?await tablePdf(resources[resource].title,resources[resource].fields,items):await spreadsheet(resource,items,format);
+  const buffer=format==='pdf'?await tablePdf(resources[resource].title,exportFields(resource),items):await spreadsheet(resource,items,format);
   res.set('Content-Type',format==='pdf'?'application/pdf':format==='csv'?'text/csv':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');res.set('Content-Disposition','attachment; filename="sales-'+resource+'.'+format+'"');
   await SalesAudit.create({actor:req.user._id,createdBy:req.user._id,resource,record:req.user._id,action:'export-'+format,assignedTo:req.user._id,after:{count:items.length},ip:req.ip});
   res.send(Buffer.from(buffer));
 }));
 router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req,req.params.resource,'create');if(!['leads','contacts','research','linkedin'].includes(req.params.resource))fail('Import is supported for leads, contacts, research and LinkedIn outreach');next();}),formUpload.single('file'),wrap(async(req,res)=>{
   const resource=req.params.resource,rows=await parseImport(resource,req.file);
+  if(resource==='linkedin'){
+    const extension=path.extname(req.file.originalname).toLowerCase();
+    const key='linkedin-data/'+new Date().toISOString().slice(0,10)+'/'+crypto.randomUUID()+extension;
+    await putR2ObjectToBucket('pmcrm',{key,body:req.file.buffer,contentType:extension==='.xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'text/csv',metadata:{uploadedby:String(req.user._id)}});
+    await SalesAudit.create({actor:req.user._id,createdBy:req.user._id,resource,record:req.user._id,action:'archive-import-file',assignedTo:req.user._id,after:{key,size:req.file.size,rows:rows.length},ip:req.ip});
+  }
   const results=[],linkedinImport=resource==='linkedin';
   const allLinkedIn=linkedinImport?await models.linkedin.find({}).select('_id createdBy linkedinUrl emails mobileNumbers version').lean():[];
   const indexedLinkedIn=new Map(allLinkedIn.map(item=>[String(item._id),item]));
