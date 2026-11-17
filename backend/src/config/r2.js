@@ -56,7 +56,12 @@ export async function getR2Object(key) {
 
 export async function deleteR2Object(key) {
   const config = await getR2Config();
-  return r2Client(config).send(new DeleteObjectCommand({ Bucket: config.bucket, Key: key }));
+  return deleteR2ObjectFromBucket(config.bucket, key);
+}
+
+export async function deleteR2ObjectFromBucket(bucket, key) {
+  const config = await getR2Config();
+  return r2Client(config).send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
 }
 
 export async function testR2Config(config) {

@@ -32,7 +32,7 @@ before(async()=>{
   process.env.SALES_RATE_LIMIT='10000';
   process.env.SMTP_HOST='test.smtp.invalid';process.env.SMTP_USER='test@example.invalid';process.env.SMTP_FROM='test@example.invalid';process.env.SMTP_PASS='test-fixture-only';
   process.env.R2_ACCOUNT_ID='test-account';process.env.R2_ACCESS_KEY_ID='test-access-key';process.env.R2_SECRET_ACCESS_KEY='test-secret-key';process.env.R2_BUCKET='test-bucket';
-  r2Server=http.createServer((req,res)=>{const chunks=[];req.on('data',chunk=>chunks.push(chunk));req.on('end',()=>{r2Uploads.push({url:req.url,headers:req.headers,body:Buffer.concat(chunks)});res.writeHead(200,{'ETag':'"test-etag"'});res.end();});});
+  r2Server=http.createServer((req,res)=>{const chunks=[];req.on('data',chunk=>chunks.push(chunk));req.on('end',()=>{r2Uploads.push({method:req.method,url:req.url,headers:req.headers,body:Buffer.concat(chunks)});res.writeHead(200,{'ETag':'"test-etag"'});res.end();});});
   r2Server.listen(0,'127.0.0.1');await new Promise(resolve=>r2Server.once('listening',resolve));process.env.R2_ENDPOINT='http://127.0.0.1:'+r2Server.address().port;
   repl=await MongoMemoryReplSet.create({replSet:{count:1,launchTimeout:120000},instanceOpts:[{launchTimeout:120000}],binary:{version:process.env.SALES_TEST_MONGO_VERSION || '7.0.14'}});
   await mongoose.connect(repl.getUri('sales_workflow_tests'));
@@ -95,9 +95,13 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   assert.match(imported.results.find(result=>result.row===3).message,/Duplicate entry.*email address/);
   assert.equal(r2Uploads.length,archivesBefore+1);
   const archived=r2Uploads[r2Uploads.length-1];
-  assert.match(archived.url,/^\/pmcrm\/linkedin-data\/\d{4}-\d{2}-\d{2}\/[0-9a-f-]+\.xlsx(?:\?|$)/);
-  assert.match(archived.headers['content-type'],/spreadsheetml\.sheet/);
-  assert.equal(archived.body.subarray(0,2).toString(),'PK');
+  assert.match(archived.url,new RegExp('^/pmcrm/linkedin-data/'+imported.results.find(result=>result.status==='Created').id+'\\.json(?:\\?|$)'));
+  assert.match(archived.headers['content-type'],/application\/json/);
+  const archivedDataset=JSON.parse(archived.body.toString());
+  assert.equal(archivedDataset.uploadedBy.name,'Test Manager');
+  assert.equal(archivedDataset.data.name,'Excel Import One');
+  assert.equal(archivedDataset.data.linkedinUrl,'https://www.linkedin.com/in/excel-import-one');
+  assert.match(imported.results.find(result=>result.row===3).message,/Duplicate entry.*email address/);
   const listed=await request(manager,'/linkedin?q=Excel Import One');
   assert.equal(listed.items[0].createdBy.name,'Test Manager');
   const exportResponse=await fetch(base+'/linkedin/export?format=csv',{headers:{Authorization:'Bearer '+tokens[String(manager._id)]}});
@@ -105,6 +109,10 @@ test('LinkedIn outreach stores repeatable emails, mobile numbers, and client cat
   const exported=await exportResponse.text();
   assert.match(exported,/Added By/);
   assert.match(exported,/Test Manager/);
+  const importedRecord=listed.items[0];
+  await request(manager,'/linkedin/'+importedRecord._id+'?version='+importedRecord.version,'DELETE');
+  assert.equal(await models.linkedin.exists({_id:importedRecord._id}),null);
+  assert.ok(r2Uploads.some(upload=>upload.method==='DELETE'&&upload.url.includes('/pmcrm/linkedin-data/'+importedRecord._id+'.json')));
   const keyedWorkbook=new ExcelJS.Workbook(),keyedSheet=keyedWorkbook.addWorksheet('LinkedIn');
   keyedSheet.addRow(['name','linkedinUrl','emails']);
   keyedSheet.addRow(['Email Key Header','https://www.linkedin.com/in/email-key-header','key-header@example.test']);

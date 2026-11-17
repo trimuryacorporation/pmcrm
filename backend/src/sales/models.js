@@ -23,6 +23,7 @@ for (const [resource, config] of Object.entries(resources)) {
     signatureVerifiedAt:Date, signatureFile:{type:mongoose.Schema.Types.ObjectId},
     history:[{at:Date,actor:{type:mongoose.Schema.Types.ObjectId,ref:'User'},version:Number,snapshot:mongoose.Schema.Types.Mixed}],
   };
+  if(resource==='linkedin')definition.cloudStorageKey={type:String,select:false};
   for (const field of config.fields) {
     const base = {required:field.required,default:undefined};
     if (field.type === 'reference') definition[field.key]={...base,type:mongoose.Schema.Types.ObjectId,ref:referenceModel(field.ref),index:!(['handovers','onboarding'].includes(resource)&&field.key==='deal')&&!(['permissions','team'].includes(resource)&&field.key==='user')};

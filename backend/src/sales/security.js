@@ -47,7 +47,9 @@ export async function scope(req,resource) {
 }
 export async function getRecord(req,resource,id,session) {
   requirePermission(req,resource,'view');validId(id);
-  const item=await models[resource].findOne({$and:[{_id:id},await scope(req,resource)]}).session(session || null);
+  const query=models[resource].findOne({$and:[{_id:id},await scope(req,resource)]}).session(session || null);
+  if(resource==='linkedin')query.select('+cloudStorageKey');
+  const item=await query;
   if(!item)fail('Record not found or access denied',404);
   return item;
 }

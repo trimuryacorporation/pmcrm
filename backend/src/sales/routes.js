@@ -17,7 +17,7 @@ import { salesReport } from './reports.js';
 import { spreadsheet, importTemplate, tablePdf, quotationPdf, parseImport, reportSpreadsheet, exportFields } from './exports.js';
 import { writeSalesAudit } from './validation.js';
 import { getCommunicationConfig } from '../config/communications.js';
-import { putR2ObjectToBucket } from '../config/r2.js';
+import { deleteR2ObjectFromBucket, putR2ObjectToBucket } from '../config/r2.js';
 const router=express.Router();
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(error=>{
   if(error.name==='ValidationError' || error.name==='CastError' || error.name==='StrictModeError' || error.name==='SyntaxError')error.statusCode=400;
@@ -25,6 +25,25 @@ const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(error=>{
   next(error);
 });
 const formUpload=multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:5}});
+const linkedInArchiveKey=id=>'linkedin-data/'+String(id)+'.json';
+function linkedInArchive(item,uploadedBy) {
+  const data=item.toObject?item.toObject():item;
+  delete data.cloudStorageKey;
+  delete data.__v;
+  return Buffer.from(JSON.stringify({id:String(data._id),uploadedAt:new Date().toISOString(),uploadedBy:{id:String(uploadedBy._id),name:uploadedBy.name},data}));
+}
+async function archiveLinkedInRecord(item,user) {
+  const key=linkedInArchiveKey(item._id);
+  const body=linkedInArchive(item,user);
+  await putR2ObjectToBucket('pmcrm',{key,body,contentType:'application/json',metadata:{uploadedby:String(user._id)}});
+  await models.linkedin.updateOne({_id:item._id},{$set:{cloudStorageKey:key}});
+  return key;
+}
+async function restoreLinkedInArchives(items,user) {
+  const results=await Promise.allSettled(items.filter(item=>item.cloudStorageKey).map(item=>putR2ObjectToBucket('pmcrm',{key:item.cloudStorageKey,body:linkedInArchive(item,user),contentType:'application/json',metadata:{uploadedby:String(user._id)}})));
+  const failures=results.filter(result=>result.status==='rejected');
+  if(failures.length)throw new AggregateError(failures.map(result=>result.reason),'Could not restore Cloudflare LinkedIn data after deletion failed');
+}
 router.use(protect,salesRateLimit,salesIdentity);
 router.use((req,res,next)=>{try{
   const page=req.get('X-Sales-Page');
@@ -133,12 +152,6 @@ router.get('/:resource/export',wrap(async(req,res)=>{
 }));
 router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req,req.params.resource,'create');if(!['leads','contacts','research','linkedin'].includes(req.params.resource))fail('Import is supported for leads, contacts, research and LinkedIn outreach');next();}),formUpload.single('file'),wrap(async(req,res)=>{
   const resource=req.params.resource,rows=await parseImport(resource,req.file);
-  if(resource==='linkedin'){
-    const extension=path.extname(req.file.originalname).toLowerCase();
-    const key='linkedin-data/'+new Date().toISOString().slice(0,10)+'/'+crypto.randomUUID()+extension;
-    await putR2ObjectToBucket('pmcrm',{key,body:req.file.buffer,contentType:extension==='.xlsx'?'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet':'text/csv',metadata:{uploadedby:String(req.user._id)}});
-    await SalesAudit.create({actor:req.user._id,createdBy:req.user._id,resource,record:req.user._id,action:'archive-import-file',assignedTo:req.user._id,after:{key,size:req.file.size,rows:rows.length},ip:req.ip});
-  }
   const results=[],linkedinImport=resource==='linkedin';
   const allLinkedIn=linkedinImport?await models.linkedin.find({}).select('_id createdBy linkedinUrl emails mobileNumbers version').lean():[];
   const indexedLinkedIn=new Map(allLinkedIn.map(item=>[String(item._id),item]));
@@ -205,11 +218,15 @@ router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req
         indexItem(existing,true);
         const updated=item.toObject();
         indexedLinkedIn.set(existingId,updated);indexItem(updated);
+        const key=await archiveLinkedInRecord(item,req.user);
+        indexedLinkedIn.get(existingId).cloudStorageKey=key;
         results.push({row,sheet,id:item._id,status:'Updated',...(ownerWarning?{warning:ownerWarning}:{})});
       }else{
         item=await transaction(session=>createRecord(req,resource,data,session,{allowAssignment:req.sales.root,skipLinkedInDuplicateCheck:true}));
         const created=item.toObject();
         const id=String(item._id);
+        const key=await archiveLinkedInRecord(item,req.user);
+        created.cloudStorageKey=key;
         indexedLinkedIn.set(id,created);accessibleLinkedIn.add(id);indexItem(created);
         results.push({row,sheet,id:item._id,status:'Created',...(ownerWarning?{warning:ownerWarning}:{})});
       }
@@ -237,9 +254,18 @@ router.delete('/:resource/bulk',wrap(async(req,res)=>{
   if(!Array.isArray(items)||!items.length||items.length>100)fail('Select 1 to 100 records');
   if(items.some(item=>!item||typeof item!=='object'||!item.id||item.version===undefined))fail('Each selected record must include an ID and version');
   if(new Set(items.map(item=>String(item.id))).size!==items.length)fail('A record was selected more than once');
-  await transaction(async session=>{
-    for(const item of items)await deleteRecord(req,resource,item.id,item.version,session);
-  });
+  const linkedItems=resource==='linkedin'?await Promise.all(items.map(item=>getRecord(req,resource,item.id))):[];
+  const deletedArchives=[];
+  try{
+    for(let index=0;index<linkedItems.length;index++){
+      const item=linkedItems[index];
+      if(Number(items[index].version)!==item.version)fail('Reload the record before deleting',409);
+      if(item.cloudStorageKey){await deleteR2ObjectFromBucket('pmcrm',item.cloudStorageKey);deletedArchives.push(item);}
+    }
+    await transaction(async session=>{
+      for(const item of items)await deleteRecord(req,resource,item.id,item.version,session);
+    });
+  }catch(error){if(deletedArchives.length)await restoreLinkedInArchives(deletedArchives,req.user);throw error;}
   res.json({deleted:items.length});
 }));
 router.get('/:resource/:id/pdf',wrap(async(req,res)=>{
@@ -320,8 +346,16 @@ router.get('/:resource',wrap(async(req,res)=>{
   const [items,total]=await Promise.all([populateQuery(models[resource].find(filter).sort({[sort]:order,_id:order}).skip((page-1)*limit).limit(limit).select('-history'),resource).lean(),models[resource].countDocuments(filter)]);
   res.json({items,total,page,pages:Math.ceil(total/limit),limit});
 }));
-router.post('/:resource',wrap(async(req,res)=>{const item=await transaction(session=>createRecord(req,req.params.resource,req.body,session));res.status(201).json(item);}));
-router.put('/:resource/:id',wrap(async(req,res)=>res.json(await transaction(session=>updateRecord(req,req.params.resource,req.params.id,req.body,session)))));
-router.delete('/:resource/:id',wrap(async(req,res)=>{await transaction(session=>deleteRecord(req,req.params.resource,req.params.id,req.query.version,session));res.json({message:'Record deleted'});}));
+router.post('/:resource',wrap(async(req,res)=>{const resource=req.params.resource;const item=await transaction(session=>createRecord(req,resource,req.body,session));if(resource==='linkedin')await archiveLinkedInRecord(item,req.user);res.status(201).json(item);}));
+router.put('/:resource/:id',wrap(async(req,res)=>{const resource=req.params.resource;const item=await transaction(session=>updateRecord(req,resource,req.params.id,req.body,session));if(resource==='linkedin')await archiveLinkedInRecord(item,req.user);res.json(item);}));
+router.delete('/:resource/:id',wrap(async(req,res)=>{
+  const {resource,id}=req.params;
+  const item=resource==='linkedin'?await getRecord(req,resource,id):null;
+  if(item&&Number(req.query.version)!==item.version)fail('Reload the record before deleting',409);
+  if(item?.cloudStorageKey)await deleteR2ObjectFromBucket('pmcrm',item.cloudStorageKey);
+  try{await transaction(session=>deleteRecord(req,resource,id,req.query.version,session));}
+  catch(error){if(item?.cloudStorageKey)await restoreLinkedInArchives([item],req.user);throw error;}
+  res.json({message:'Record deleted'});
+}));
 export default router;
 function analyticsPage(req){const page=String(req.query.salesPage || 'analytics');if(!['dashboard','analytics','team-performance','revenue','reports','targets'].includes(page))fail('Invalid analytics page');return page;}
