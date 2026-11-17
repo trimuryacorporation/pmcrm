@@ -58,12 +58,12 @@ export async function createRecord(req,resource,body,session) {
   }
   const settings=await settingsFor(session);
   const key=settings?.duplicateDetection===false?undefined:duplicateKey(resource,data,req.user._id);
-  if(['leads','calls','linkedin'].includes(resource)&&!data.nextFollowup&&Number(settings?.followupRules?.defaultDays)>0)data.nextFollowup=new Date(Date.now()+Number(settings.followupRules.defaultDays)*86400000);
+  if(['leads','calls'].includes(resource)&&!data.nextFollowup&&Number(settings?.followupRules?.defaultDays)>0)data.nextFollowup=new Date(Date.now()+Number(settings.followupRules.defaultDays)*86400000);
   if(key)data.dedupeKey=key;
   const [item]=await models[resource].create([{...data,createdBy:req.user._id}],{session});
   await writeSalesAudit(req,resource,item,'create',null,session);
   await recordInteraction(req,resource,item,'created',session);
-  if(settings?.followupRules?.autoCreate!==false && ['leads','calls','linkedin'].includes(resource) && item.nextFollowup)await createRecord(req,'followups',{name:'Follow up '+(item.name || item.recordId),company:item.company,lead:resource==='leads'?item._id:item.lead,contact:item.contact,assignedTo:req.user._id,dueDate:item.nextFollowup.toISOString(),type:resource==='calls'?'Call':resource==='linkedin'?'LinkedIn':'Other',status:'Pending'},session);
+  if(settings?.followupRules?.autoCreate!==false && ['leads','calls'].includes(resource) && item.nextFollowup)await createRecord(req,'followups',{name:'Follow up '+(item.name || item.recordId),company:item.company,lead:resource==='leads'?item._id:item.lead,contact:item.contact,assignedTo:req.user._id,dueDate:item.nextFollowup.toISOString(),type:'Other',status:'Pending'},session);
   return item;
 }
 export async function updateRecord(req,resource,id,body,session) {

@@ -1,4 +1,4 @@
-import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, ExternalLink, KeyRound, LayoutDashboard, Settings, ShieldCheck, SlidersHorizontal, UserCheck, Users, WalletCards } from 'lucide-react';
+import { Activity, Briefcase, Building2, CircleDollarSign, ClipboardList, ExternalLink, KeyRound, LayoutDashboard, Settings, ShieldCheck, UserCheck, Users, WalletCards } from 'lucide-react';
 import { availabilityOptions, EXPERIENCE_OPTIONS, LANGUAGE_OPTIONS, PROJECT_TYPE_OPTIONS } from './formOptions.js';
 
 export const navItems = [
@@ -17,7 +17,6 @@ export const navItems = [
   { label: 'Activity', path: '/activity', icon: Activity, section: 'Administration', roles: ['super_admin', 'admin'] },
   { label: 'Portal Credentials', path: '/portal', icon: ExternalLink, section: 'Administration', roles: ['super_admin'], permissionKey: 'portal-directory' },
   { label: 'Administrators', path: '/administrators', icon: ShieldCheck, section: 'Administration', roles: ['super_admin'] },
-  { label: 'Access Control', path: '/access-control', icon: SlidersHorizontal, section: 'Administration', roles: ['super_admin'] },
   { label: 'API Access', path: '/api-access', icon: KeyRound, section: 'Administration', roles: ['super_admin'] },
   { label: 'Settings', path: '/settings', icon: Settings, section: 'Administration', roles: ['super_admin'] }
 ];

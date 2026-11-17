@@ -49,8 +49,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route element={<AppLayout />}>
 
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/sales" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/sales/dashboard" element={<Navigate to="/dashboard" replace />} />
               <Route element={<ProtectedRoute roles={salesRoles} />}>
-                <Route path="/sales" element={<Navigate to="/sales/dashboard" replace />} />
                 <Route path="/sales/:page" element={<Sales />} />
               </Route>
               <Route path="/projects" element={<ModulePage module="projects" />} />

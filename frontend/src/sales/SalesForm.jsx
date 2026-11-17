@@ -23,7 +23,7 @@ function RecordForm({title,fields,initial={},metadata,onClose,onSave,resource,pe
   const titleId=useId();const formRef=useRef(null);
   const [form,setForm]=useState(()=>Object.fromEntries(fields.map(field=>{
     const value=initial[field.key];
-    return [field.key,field.type==='reference'?idOf(value) || (field.key==='assignedTo'?metadata?.userId:''):field.type==='references'?(value || []).map(idOf):field.type==='checkbox'?(value===undefined&&field.key==='duplicateDetection'?true:Boolean(value)):field.type==='json'?JSON.stringify(value ?? (['leadStatuses','dealStages','leadSources','serviceCategories'].includes(field.key)?[]:{}),null,2):['date','datetime-local'].includes(field.type)&&value?field.type==='date'?new Date(value).toISOString().slice(0,10):localDateTime(value,initial.timeZone || metadata?.settings?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone):value ?? (field.key==='timeZone'?metadata?.settings?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone:'')];
+    return [field.key,field.type==='reference'?idOf(value) || (field.key==='assignedTo'?metadata?.userId:''):field.type==='references'?(value || []).map(idOf):['email-list','phone-list'].includes(field.type)?Array.isArray(value)&&value.length?value:['']:field.type==='checkbox'?(value===undefined&&field.key==='duplicateDetection'?true:Boolean(value)):field.type==='json'?JSON.stringify(value ?? (['leadStatuses','dealStages','leadSources','serviceCategories'].includes(field.key)?[]:{}),null,2):['date','datetime-local'].includes(field.type)&&value?field.type==='date'?new Date(value).toISOString().slice(0,10):localDateTime(value,initial.timeZone || metadata?.settings?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone):value ?? (field.key==='timeZone'?metadata?.settings?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone:'')];
   })));
   const [saving,setSaving]=useState(false),[error,setError]=useState(''),[files,setFiles]=useState([]),[preview,setPreview]=useState(false);
   useEffect(()=>{
@@ -36,6 +36,8 @@ function RecordForm({title,fields,initial={},metadata,onClose,onSave,resource,pe
     document.addEventListener('keydown',keydown);return ()=>{document.removeEventListener('keydown',keydown);previous?.focus();};
   },[onClose,saving]);
   const set=(key,value)=>setForm(current=>({...current,[key]:value}));
+  const addListItem=key=>set(key,[...(Array.isArray(form[key])?form[key]:[]),'']);
+  const removeListItem=(key,index)=>set(key,form[key].filter((_,itemIndex)=>itemIndex!==index));
   async function save(event) {
     event.preventDefault();setSaving(true);setError('');
     try{
@@ -46,6 +48,7 @@ function RecordForm({title,fields,initial={},metadata,onClose,onSave,resource,pe
         if(field.type==='json'){payload[field.key]=value?JSON.parse(value):null;}
         else if(field.type==='number'){if(value!=='')payload[field.key]=Number(value);}
         else if(field.type==='checkbox')payload[field.key]=Boolean(value);
+        else if(['email-list','phone-list'].includes(field.type)){payload[field.key]=(value || []).map(item=>item.trim()).filter(Boolean);}
         else if(['date','datetime-local'].includes(field.type)){if(value)payload[field.key]=field.type==='datetime-local'?zonedDateTime(value,form.timeZone || metadata?.settings?.timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone):value;}
         else if(value!=='' || initial[field.key])payload[field.key]=value;
       }
@@ -65,6 +68,11 @@ function RecordForm({title,fields,initial={},metadata,onClose,onSave,resource,pe
           const field={...rawField,required:rawField.required&&!(resource==='leads'&&rawField.key==='company')};
           const options=field.key==='status'&&resource==='leads'?[...(field.options || []),...(metadata?.settings?.leadStatuses || [])]:field.key==='stage'?[...(field.options || []),...(metadata?.settings?.dealStages || [])]:field.key==='serviceCategory'&&resource!=='pricing'?[...(field.options || []),...(metadata?.settings?.serviceCategories || [])]:field.options || [];
           const disabled=field.key==='assignedTo'&&!permissions.assign;
+          if(['email-list','phone-list'].includes(field.type)){
+            const values=Array.isArray(form[field.key])?form[field.key]:[''];
+            const itemLabel=field.type==='email-list'?'Email':'Mobile Number';
+            return <div key={field.key}><span className="mb-1 block text-sm font-semibold text-slate-700">{field.label}</span><div className="space-y-2">{values.map((value,index)=><div key={index} className="flex items-center gap-2"><input className={control} type={field.type==='email-list'?'email':'tel'} aria-label={`${itemLabel} ${index+1}`} placeholder={`${itemLabel} ${index+1}`} value={value} onChange={event=>set(field.key,values.map((item,itemIndex)=>itemIndex===index?event.target.value:item))}/><button type="button" className="btn-secondary shrink-0 px-3" aria-label={`Remove ${itemLabel.toLowerCase()} ${index+1}`} disabled={values.length===1} onClick={()=>removeListItem(field.key,index)}><X className="h-4 w-4"/></button></div>)}</div><button type="button" className="btn-secondary mt-2 text-xs" onClick={()=>addListItem(field.key)}>+ Add {itemLabel}</button></div>;
+          }
           return <label key={field.key} className={['textarea','json'].includes(field.type)?'sm:col-span-2':''}>
             <span className="mb-1 block text-sm font-semibold text-slate-700">{field.key==='assignedTo'?'Added By':field.label}{field.required?' *':''}</span>
             {field.key==='assignedTo'?<input className={control} readOnly value={initial.createdBy?.name || metadata?.userName || metadata?.references?.users?.find(user=>String(user._id)===String(metadata?.userId))?.name || 'Current user'} aria-label="Added By" />:field.type==='reference'?<ReferenceField field={field} value={form[field.key]} onChange={value=>set(field.key,value)} options={metadata?.references?.[field.ref] || []} disabled={disabled}/>:

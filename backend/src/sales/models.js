@@ -31,6 +31,7 @@ for (const [resource, config] of Object.entries(resources)) {
     else if (field.type === 'checkbox') definition[field.key]={type:Boolean,default:field.key==='duplicateDetection'};
     else if (['date','datetime-local'].includes(field.type)) definition[field.key]={...base,type:Date};
     else if (field.type === 'json') definition[field.key]={type:mongoose.Schema.Types.Mixed};
+    else if (['email-list','phone-list'].includes(field.type)) definition[field.key]={...base,type:[{type:String,trim:true,...(field.type==='email-list'?{lowercase:true,match:/^[^\s@]+@[^\s@]+\.[^\s@]+$/}:{})}]};
     else definition[field.key]={...base,type:String,trim:true,maxlength:['textarea'].includes(field.type)?20000:1000,...(field.type==='email'?{lowercase:true,match:/^[^\s@]+@[^\s@]+\.[^\s@]+$/}:{})};
   }
   if (resource === 'settings') definition.singletonKey={type:String,default:'global',unique:true};

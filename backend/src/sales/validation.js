@@ -52,6 +52,17 @@ export async function validatePayload(req,resource,body,existing,session) {
     if(input===null || input===''){if(field.required && !(resource==='leads'&&key==='company'))fail(field.label+' is required');output[key]=undefined;continue;}
     if(field.type==='number'){output[key]=Number(input);if(!Number.isFinite(output[key]) || output[key]<0 || (['score','probability','tax'].includes(key)&&output[key]>100))fail(field.label+' is invalid');}
     else if(field.type==='checkbox'){if(typeof input!=='boolean')fail(field.label+' must be true or false');output[key]=input;}
+    else if(['email-list','phone-list'].includes(field.type)) {
+      if(!Array.isArray(input))fail(field.label+' must be a list');
+      output[key]=input.map(value=>{
+        if(typeof value!=='string')fail(field.label+' entries must be text');
+        const entry=value.trim();
+        if(!entry)return '';
+        if(field.type==='email-list'&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(entry))fail(field.label+' contains an invalid email address');
+        if(field.type==='phone-list'&&(!/^\+?[0-9().\s-]{6,30}$/.test(entry)||entry.replace(/\D/g,'').length<6))fail(field.label+' contains an invalid mobile number');
+        return field.type==='email-list'?entry.toLowerCase():entry;
+      }).filter(Boolean);
+    }
     else if(['date','datetime-local'].includes(field.type)){if(Number.isNaN(new Date(input).getTime()))fail(field.label+' is invalid');output[key]=new Date(input);}
     else if(['reference','references'].includes(field.type)) {
       const values=field.type==='references'?input:[input];if(!Array.isArray(values))fail(field.label+' must be a list');
@@ -104,6 +115,21 @@ export async function validatePayload(req,resource,body,existing,session) {
       if(['cc','bcc'].includes(key) && value.split(',').some(v=>!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim())))fail('Invalid email address list');
       if(resource==='settings' && key==='integrations' && /password|secret|token|credential/i.test(value))fail('Do not store integration secrets here');
       output[key]=field.type==='email'?value.toLowerCase():value;
+    }
+  }
+  if(resource==='linkedin') {
+    const emails=output.emails ?? existing?.emails ?? [];
+    const mobileNumbers=output.mobileNumbers ?? existing?.mobileNumbers ?? [];
+    const normalizedEmails=emails.map(value=>value.toLowerCase());
+    const normalizedMobileNumbers=mobileNumbers.map(value=>value.replace(/\D/g,''));
+    if(new Set(normalizedEmails).size!==normalizedEmails.length)fail('Duplicate entry: an email address is repeated',409);
+    if(new Set(normalizedMobileNumbers).size!==normalizedMobileNumbers.length)fail('Duplicate entry: a mobile number is repeated',409);
+    if(normalizedEmails.length||normalizedMobileNumbers.length) {
+      const records=await models.linkedin.find(existing?{_id:{$ne:existing._id}}:{}).select('emails mobileNumbers').session(session).lean();
+      const knownEmails=new Set(records.flatMap(record=>(record.emails || []).map(value=>value.toLowerCase())));
+      const knownMobileNumbers=new Set(records.flatMap(record=>(record.mobileNumbers || []).map(value=>value.replace(/\D/g,''))));
+      if(normalizedEmails.some(value=>knownEmails.has(value)))fail('Duplicate entry: this email address already exists',409);
+      if(normalizedMobileNumbers.some(value=>knownMobileNumbers.has(value)))fail('Duplicate entry: this mobile number already exists',409);
     }
   }
   if(body.sharedWith!==undefined) {

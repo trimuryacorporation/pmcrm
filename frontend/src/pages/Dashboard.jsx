@@ -7,6 +7,10 @@ import PageHeader from '../components/PageHeader.jsx';
 import StatCard from '../components/StatCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { endpoints } from '../utils/api.js';
+import SalesDashboard from '../sales/SalesDashboard.jsx';
+import { salesRoles } from '../data/sales.js';
+import { salesApi } from '../sales/api.js';
+import { services } from '../../../backend/src/sales/config.js';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext.jsx';
 import ProjectApplicantsModal from '../components/ProjectApplicantsModal.jsx';
@@ -19,7 +23,11 @@ export default function Dashboard() {
   const [sendingInviteId, setSendingInviteId] = useState('');
   const [selectedProjectApplicants, setSelectedProjectApplicants] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [salesMetadata, setSalesMetadata] = useState(null);
+  const [salesMetadataError, setSalesMetadataError] = useState('');
+  const [salesMetadataRetry, setSalesMetadataRetry] = useState(0);
   const { user } = useAuth();
+  const canViewSales = salesRoles.includes(user?.role);
 
   async function loadDashboard() {
     const response = await endpoints.dashboard();
@@ -29,6 +37,24 @@ export default function Dashboard() {
   useEffect(() => {
     loadDashboard();
   }, []);
+
+  useEffect(() => {
+    if (!canViewSales) return undefined;
+    let active = true;
+    setSalesMetadata(null);
+    setSalesMetadataError('');
+    salesApi('/metadata')
+      .then((metadata) => {
+        if (active) setSalesMetadata({
+          ...metadata,
+          serviceCategories: [...new Set([...services, ...(metadata.settings?.serviceCategories || [])])]
+        });
+      })
+      .catch((error) => {
+        if (active) setSalesMetadataError(error.message);
+      });
+    return () => { active = false; };
+  }, [canViewSales, user?._id, salesMetadataRetry]);
 
   async function refreshDashboard() {
     setRefreshing(true);
@@ -223,6 +249,8 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      {canViewSales && salesMetadataError && <div role="alert" className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Sales dashboard could not be loaded: {salesMetadataError}<button type="button" className="btn-secondary ml-3" onClick={() => setSalesMetadataRetry((value) => value + 1)}>Retry</button></div>}
+      {salesMetadata?.pages?.dashboard?.view && <div className="mt-8"><SalesDashboard page="dashboard" metadata={salesMetadata} embedded /></div>}
       {passwordStatus && <PasswordStatusModal status={passwordStatus} records={selectedPasswordRecords} sendingInviteId={sendingInviteId} onSendSetupEmail={sendSetupEmail} onClose={() => setPasswordStatus('')} />}
       {selectedProjectApplicants && <ProjectApplicantsModal applications={selectedProjectApplicants.applications} onClose={() => setSelectedProjectApplicants(null)} />}
     </>

@@ -1,4 +1,4 @@
-import { BarChart3, Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRound, X } from 'lucide-react';
+import { Bell, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, UserRound, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import BrandLogo from './BrandLogo.jsx';
@@ -30,7 +30,10 @@ export default function AppLayout() {
     salesApi('/metadata').then(data => { if (current) setSalesPermissions(data.pages); }).catch(() => { if (current) setSalesPermissions({}); });
     return () => { current = false; };
   }, [canViewSales, user?._id, pathname]);
-  const visibleSalesSections = salesSections.map(group => ({ ...group, items: group.items.filter(([slug]) => salesPermissions?.[slug]?.view) })).filter(group => group.items.length);
+  const salesAdministrationItems=(salesSections.find(group=>group.label==='Administration')?.items || [])
+    .filter(({slug})=>salesPermissions?.[slug]?.view)
+    .map(({slug,label,icon})=>({label,path:slug==='permissions'?'/access-control':`/sales/${slug}`,icon}));
+  const visibleSalesSections = salesSections.filter(group=>group.label!=='Administration').map(group => ({ ...group, items: group.items.filter(({ slug }) => slug !== 'dashboard' && salesPermissions?.[slug]?.view) })).filter(group => group.items.length);
 
 
   function toggleDesktopSidebar() {
@@ -106,6 +109,10 @@ export default function AppLayout() {
       sections[section].push(item);
       return sections;
     }, {});
+  if(salesAdministrationItems.length){
+    const combined=[...(navigationSections.Administration || []),...salesAdministrationItems];
+    navigationSections.Administration=[...new Map(combined.map(item=>[item.path,item])).values()];
+  }
 
   const sidebar = (
     <aside className="flex h-full w-72 flex-col bg-slate-950 text-white">
@@ -114,7 +121,7 @@ export default function AppLayout() {
         <button className="hidden rounded-lg p-1.5 text-slate-300 hover:bg-white/10 hover:text-white lg:inline-flex" onClick={toggleDesktopSidebar} aria-label="Close sidebar" title="Close sidebar"><PanelLeftClose className="h-4 w-4" /></button>
       </div>
       <nav className="sidebar-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto px-3 py-4 pr-2">
-        {Object.entries(navigationSections).map(([section, items]) => <div key={section} className="pb-3 pt-1 first:pt-0">
+        {Object.entries(navigationSections).filter(([section])=>section!=='Administration').map(([section, items]) => <div key={section} className="pb-3 pt-1 first:pt-0">
           <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{section}</p>
           <div className="space-y-1">{items.map((item) => (
             <NavLink
@@ -133,19 +140,19 @@ export default function AppLayout() {
           ))}</div>
         </div>)}
         {canViewSales && visibleSalesSections.length>0 && <div className="mt-3 border-t border-white/10 pb-3 pt-3">
-          <div className="flex items-center gap-3 px-3 py-2.5 text-indigo-200">
-            <BarChart3 className="h-4 w-4 shrink-0" />
-            <h2 className="text-xs font-semibold leading-5">SALES &amp; BUSINESS DEVELOPMENT</h2>
-          </div>
-          <div id="sales-navigation" className="ml-4 mt-2 space-y-3 border-l border-white/10 pl-2">
+          <div id="sales-navigation" className="space-y-3">
             {visibleSalesSections.map((group) => <div key={group.label}>
               <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">{group.label}</p>
-              <div className="space-y-1">{group.items.map(([slug, label]) => <NavLink key={slug} to={`/sales/${slug}`} onClick={() => setOpen(false)} className={({ isActive }) => `flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-white text-slate-950' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
-                <group.icon className="mt-0.5 h-4 w-4 shrink-0" />
+              <div className="space-y-1">{group.items.map(({ slug, label, icon: Icon }) => <NavLink key={slug} to={slug==='permissions'?'/access-control':`/sales/${slug}`} onClick={() => setOpen(false)} className={({ isActive }) => `flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-medium transition ${isActive ? 'bg-white text-slate-950' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                <Icon className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{label}</span>
               </NavLink>)}</div>
             </div>)}
           </div>
+        </div>}
+        {navigationSections.Administration?.length>0&&<div className="border-t border-white/10 pb-3 pt-2">
+          <p className="px-3 pb-1.5 pt-2 text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">Administration</p>
+          <div className="space-y-1">{navigationSections.Administration.map(item=><NavLink key={item.path} to={item.path} onClick={()=>setOpen(false)} className={({isActive})=>`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${isActive?'bg-white text-slate-950':'text-slate-300 hover:bg-white/10 hover:text-white'}`}><item.icon className="h-4 w-4"/>{item.label}</NavLink>)}</div>
         </div>}
       </nav>
     </aside>

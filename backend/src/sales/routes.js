@@ -121,7 +121,7 @@ router.get('/:resource/export',wrap(async(req,res)=>{
   await SalesAudit.create({actor:req.user._id,createdBy:req.user._id,resource,record:req.user._id,action:'export-'+format,assignedTo:req.user._id,after:{count:items.length},ip:req.ip});
   res.send(Buffer.from(buffer));
 }));
-router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req,req.params.resource,'create');if(!['leads','contacts','research'].includes(req.params.resource))fail('Import is supported for leads, contacts and research');next();}),formUpload.single('file'),wrap(async(req,res)=>{
+router.post('/:resource/import',wrap(async(req,res,next)=>{requirePermission(req,req.params.resource,'create');if(!['leads','contacts','research','linkedin'].includes(req.params.resource))fail('Import is supported for leads, contacts, research and LinkedIn outreach');next();}),formUpload.single('file'),wrap(async(req,res)=>{
   const rows=await parseImport(req.params.resource,req.file);
   const results=[];
   for(const {row,data} of rows)try{
@@ -144,6 +144,17 @@ router.post('/:resource/bulk',wrap(async(req,res)=>{
   const items=await transaction(async session=>{
     const result=[];for(const item of req.body.items)result.push(await updateRecord(req,resource,item.id,{...req.body.changes,version:item.version},session));return result;
   });res.json({items});
+}));
+router.delete('/:resource/bulk',wrap(async(req,res)=>{
+  const {resource}=req.params;requirePermission(req,resource,'delete');
+  const items=req.body?.items;
+  if(!Array.isArray(items)||!items.length||items.length>100)fail('Select 1 to 100 records');
+  if(items.some(item=>!item||typeof item!=='object'||!item.id||item.version===undefined))fail('Each selected record must include an ID and version');
+  if(new Set(items.map(item=>String(item.id))).size!==items.length)fail('A record was selected more than once');
+  await transaction(async session=>{
+    for(const item of items)await deleteRecord(req,resource,item.id,item.version,session);
+  });
+  res.json({deleted:items.length});
 }));
 router.get('/:resource/:id/pdf',wrap(async(req,res)=>{
   const resource=req.params.resource;if(resource!=='proposals')fail('PDF preview is supported for proposals',404);

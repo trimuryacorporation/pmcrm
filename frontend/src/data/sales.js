@@ -1,7 +1,69 @@
-import { BarChart3, Building2, FileText, Mail, Settings, Target } from 'lucide-react';
+import {
+  BadgeCheck,
+  BarChart3,
+  Building2,
+  CalendarDays,
+  ChartColumn,
+  CircleDollarSign,
+  ClipboardList,
+  ContactRound,
+  FileBarChart,
+  FileCheck2,
+  FileSignature,
+  FileText,
+  FolderKanban,
+  Handshake,
+  LayoutDashboard,
+  Linkedin,
+  ListTodo,
+  Mail,
+  MessagesSquare,
+  Phone,
+  Search,
+  Settings,
+  Settings2,
+  ShieldCheck,
+  Target,
+  TrendingUp,
+  UserRoundCheck,
+  UserCog,
+  UsersRound,
+} from 'lucide-react';
 import { navigation, resources, pageResources, salesAccessModules, salesAccessActions } from '../../../backend/src/sales/config.js';
 export { resources, pageResources, salesAccessModules, salesAccessActions };
 export const salesRoles = ['super_admin', 'admin', 'employee'];
 const icons=[BarChart3,Building2,Mail,FileText,Target,Settings];
-export const salesSections=navigation.map(([label,items],index)=>({label,items,icon:icons[index]}));
+const pageIcons = {
+  dashboard: LayoutDashboard,
+  analytics: ChartColumn,
+  leads: Building2,
+  contacts: ContactRound,
+  research: Search,
+  qualification: BadgeCheck,
+  'assigned-leads': UserRoundCheck,
+  'email-outreach': Mail,
+  'linkedin-outreach': Linkedin,
+  calls: Phone,
+  meetings: CalendarDays,
+  'follow-ups': ListTodo,
+  communications: MessagesSquare,
+  deals: Handshake,
+  proposals: FileSignature,
+  pricing: CircleDollarSign,
+  contracts: FileCheck2,
+  'client-onboarding': ClipboardList,
+  handover: FolderKanban,
+  targets: Target,
+  'team-performance': UsersRound,
+  revenue: TrendingUp,
+  reports: FileBarChart,
+  team: UserCog,
+  permissions: ShieldCheck,
+  settings: Settings2,
+};
+export const salesSections=navigation.map(([label,items],index)=>({
+  label,
+  items:items.map(([slug,itemLabel])=>({slug,label:itemLabel,icon:pageIcons[slug]})),
+  icon:icons[index],
+}));
 export const salesPageResource=(page)=>pageResources[page] || (['dashboard','analytics','reports','team-performance'].includes(page)?'leads':page==='revenue'?'deals':page);

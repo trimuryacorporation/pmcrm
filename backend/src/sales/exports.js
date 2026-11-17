@@ -58,7 +58,13 @@ export async function parseImport(resource,file) {
       if(raw===null || raw===undefined || raw==='')return;
       if(raw && typeof raw==='object' && !(raw instanceof Date))fail('Formulas and rich spreadsheet objects are not accepted (row '+row+')');
       used=true;
-      data[field.key]=field.type==='checkbox'?['true','yes','1'].includes(String(raw).toLowerCase()):['date','datetime-local'].includes(field.type)&&raw instanceof Date?raw.toISOString():field.type==='number'?Number(raw):String(raw);
+      if(['email-list','phone-list'].includes(field.type)){
+        const text=String(raw).trim();
+        if(text.startsWith('[')){
+          try{data[field.key]=JSON.parse(text);}catch{fail(field.label+' must contain a valid list (row '+row+')');}
+          if(!Array.isArray(data[field.key])||data[field.key].some(value=>typeof value!=='string'))fail(field.label+' must contain a list of text values (row '+row+')');
+        }else data[field.key]=text.split(/[,\n;]+/).map(value=>value.trim()).filter(Boolean);
+      }else data[field.key]=field.type==='checkbox'?['true','yes','1'].includes(String(raw).toLowerCase()):['date','datetime-local'].includes(field.type)&&raw instanceof Date?raw.toISOString():field.type==='number'?Number(raw):String(raw);
     });
     if(used)rows.push({row,data});
   }

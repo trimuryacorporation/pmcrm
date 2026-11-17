@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import ApiKey from '../src/models/ApiKey.js';
 import test, {before,after} from 'node:test';
 import mongoose from 'mongoose';
+import ExcelJS from 'exceljs';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import nodemailer from 'nodemailer';
@@ -43,6 +44,51 @@ async function request(user,path,method='GET',body,status=200) {
   assert.equal(response.status,status,method+' '+path+': '+JSON.stringify(data));
   return data;
 }
+
+test('LinkedIn outreach stores repeatable emails, mobile numbers, and client category',async()=>{
+  const startedAt=Date.now();
+  const record=await request(manager,'/linkedin','POST',{
+    name:'LinkedIn Contact',
+    linkedinUrl:'https://www.linkedin.com/in/linkedin-contact',
+    emails:['FIRST@EXAMPLE.TEST','second@example.test'],
+    mobileNumbers:['+1 (202) 555-0198','+91 98765-43210'],
+    clientCategory:'Website Design',
+  },201);
+  assert.deepEqual(record.emails,['first@example.test','second@example.test']);
+  assert.deepEqual(record.mobileNumbers,['+1 (202) 555-0198','+91 98765-43210']);
+  assert.equal(record.clientCategory,'Website Design');
+  assert.ok(Date.parse(record.createdAt)>=startedAt);
+  assert.equal(resources.linkedin.fields.some(field=>['company','message','outreachDate','nextFollowup'].includes(field.key)),false);
+  const duplicateEmail=await request(bda,'/linkedin','POST',{name:'Duplicate Email Contact',linkedinUrl:'https://www.linkedin.com/in/duplicate-email',emails:['first@example.test']},409);
+  assert.match(duplicateEmail.message,/Duplicate entry.*email address/);
+  const duplicateMobile=await request(bda,'/linkedin','POST',{name:'Duplicate Mobile Contact',linkedinUrl:'https://www.linkedin.com/in/duplicate-mobile',mobileNumbers:['+1-202-555-0198']},409);
+  assert.match(duplicateMobile.message,/Duplicate entry.*mobile number/);
+  const duplicateWithinRecord=await request(manager,'/linkedin','POST',{name:'Repeated Contact',linkedinUrl:'https://www.linkedin.com/in/repeated-contact',emails:['same@example.test','SAME@example.test']},409);
+  assert.match(duplicateWithinRecord.message,/Duplicate entry.*repeated/);
+  await request(manager,'/linkedin','POST',{name:'Invalid Email Contact',linkedinUrl:'https://www.linkedin.com/in/invalid-email',emails:['bad-email']},400);
+  await request(manager,'/linkedin','POST',{name:'Invalid Phone Contact',linkedinUrl:'https://www.linkedin.com/in/invalid-phone',mobileNumbers:['not-a-number']},400);
+  await request(manager,'/linkedin','POST',{name:'Invalid Category Contact',linkedinUrl:'https://www.linkedin.com/in/invalid-category',clientCategory:'Unlisted'},400);
+
+  const workbook=new ExcelJS.Workbook(),sheet=workbook.addWorksheet('LinkedIn');
+  sheet.addRow(['Contact Name','LinkedIn Prospect URL','Email Addresses','Mobile Numbers','Client Category']);
+  sheet.addRow(['Excel Import One','https://www.linkedin.com/in/excel-import-one','import-shared@example.test, extra@example.test','+1 415 555 0111','AI']);
+  sheet.addRow(['Excel Import Duplicate','https://www.linkedin.com/in/excel-import-duplicate','IMPORT-SHARED@example.test','+1 415 555 0112','Website Design']);
+  const file=new FormData();file.append('file',new Blob([Buffer.from(await workbook.xlsx.writeBuffer())]),'linkedin.xlsx');
+  const imported=await request(manager,'/linkedin/import','POST',file);
+  assert.equal(imported.created,1);assert.equal(imported.rejected,1);
+  assert.equal(imported.results.find(result=>result.row===2).status,'Created');
+  assert.match(imported.results.find(result=>result.row===3).message,/Duplicate entry.*email address/);
+
+  const first=await request(manager,'/linkedin','POST',{name:'Bulk Delete One',linkedinUrl:'https://www.linkedin.com/in/bulk-delete-one'},201);
+  const second=await request(manager,'/linkedin','POST',{name:'Bulk Delete Two',linkedinUrl:'https://www.linkedin.com/in/bulk-delete-two'},201);
+  const selected=[{id:first._id,version:first.version},{id:second._id,version:second.version}];
+  await request(bda,'/linkedin/bulk','DELETE',{items:selected},403);
+  await request(manager,'/linkedin/bulk','DELETE',{items:[selected[0],{...selected[1],version:second.version+1}]},409);
+  assert.equal(await models.linkedin.countDocuments({_id:{$in:selected.map(item=>item.id)}}),2);
+  const deleted=await request(manager,'/linkedin/bulk','DELETE',{items:selected});
+  assert.equal(deleted.deleted,2);
+  assert.equal(await models.linkedin.countDocuments({_id:{$in:selected.map(item=>item.id)}}),0);
+});
 
 test('isolated MongoDB: creator isolation ignores assignment and sharing',async()=>{
 const lead=await request(bda,'/leads','POST',{name:'Ownership Fixture',email:'own@fixture.test',serviceCategory:'Transcription'},201);

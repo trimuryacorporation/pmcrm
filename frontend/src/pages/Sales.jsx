@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Navigate, useParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext.jsx';
 import { resources, pageResources } from '../data/sales.js';
 import { services } from '../../../backend/src/sales/config.js';
 import { salesApi } from '../sales/api.js';
@@ -10,10 +11,12 @@ import SalesTargets from '../sales/SalesTargets.jsx';
 
 export default function Sales() {
   const {page='dashboard'}=useParams();
+  const {user}=useAuth();
   const [metadata,setMetadata]=useState(null),[error,setError]=useState(''),[retry,setRetry]=useState(0);
-  useEffect(()=>{let current=true;setError('');salesApi('/metadata').then(data=>{if(current)setMetadata({...data,serviceCategories:[...new Set([...services,...(data.settings?.serviceCategories || [])])]});}).catch(err=>{if(current)setError(err.message);});return ()=>{current=false;};},[retry,page]);
+  useEffect(()=>{if(page==='permissions')return undefined;let current=true;setError('');salesApi('/metadata').then(data=>{if(current)setMetadata({...data,serviceCategories:[...new Set([...services,...(data.settings?.serviceCategories || [])])]});}).catch(err=>{if(current)setError(err.message);});return ()=>{current=false;};},[retry,page]);
   const resource=pageResources[page] || page;
   const computed=['dashboard','analytics','team-performance','revenue','reports'].includes(page);
+  if(page==='permissions')return <Navigate to={user?.role==='super_admin'?'/access-control':'/dashboard'} replace/>;
   if(!computed&&!resources[resource])return <Navigate to="/sales/dashboard" replace/>;
   if(error)return <div role="alert" className="rounded-xl border border-rose-200 bg-white p-6 text-rose-700">{error}<button className="btn-secondary ml-3" onClick={()=>setRetry(current=>current+1)}>Retry</button></div>;
   if(!metadata)return <div className="space-y-4">{[1,2,3,4].map(key=><div key={key} className="h-20 animate-pulse rounded-xl bg-slate-200"/>)}</div>;
