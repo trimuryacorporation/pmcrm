@@ -1,6 +1,7 @@
 User-agent: *
 Allow: /
 Disallow: /dashboard
+Disallow: /sales
 Disallow: /projects
 Disallow: /clients
 Disallow: /candidates
@@ -15,6 +16,9 @@ Disallow: /activity
 Disallow: /settings
 Disallow: /profile
 Disallow: /portal
+Disallow: /onboarding
+Disallow: /shared/
+Disallow: /p/
 Disallow: /administrators
 Disallow: /api-access
 Disallow: /access-control
@@ -22,4 +26,5 @@ Disallow: /login
 Disallow: /forgot-password
 Disallow: /reset-password
 Disallow: /set-password
+Disallow: /employee-activity
 Sitemap: https://pmcrm.trimuryacorporation.in/sitemap.xml
