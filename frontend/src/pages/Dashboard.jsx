@@ -80,6 +80,13 @@ export default function Dashboard() {
   const isAdmin = ['super_admin', 'admin'].includes(user?.role);
   const isPartner = ['vendor', 'freelancer', 'candidate'].includes(user?.role);
   const canViewFullDashboard = isAdmin || (!isPartner && Boolean(user?.accessPermissions?.['dashboard-full']?.view));
+  const canViewDashboardCard = (key, fallback) => {
+    const card = { 'total-projects': 'totalProjects', 'live-projects': 'activeProjects', 'completed-projects': 'completedProjects', 'pending-projects': 'pendingProjects', candidates: 'totalCandidates', vendors: 'totalVendors', freelancers: 'totalFreelancers', employees: 'totalEmployees' }[key];
+    if (user?.role === 'super_admin') return true;
+    if (typeof data.dashboardAccess?.cards?.[card] === 'boolean') return data.dashboardAccess.cards[card];
+    const permission = user?.accessPermissions?.[`dashboard-card-${key}`];
+    return typeof permission?.view === 'boolean' ? permission.view : canViewFullDashboard || fallback;
+  };
   const canViewProjectApplications = !isPartner && (canViewFullDashboard || Boolean(user?.accessPermissions?.['project-applications']?.view));
   const canViewPasswordSetup = !isPartner && (canViewFullDashboard || Boolean(user?.accessPermissions?.['password-setup-status']?.view));
   const applicantsByProject = (data.projectApplications || []).reduce((groups, application) => {
@@ -111,14 +118,14 @@ export default function Dashboard() {
     <>
       <PageHeader title="Enterprise Dashboard" action={<button className="btn-secondary" disabled={refreshing} onClick={refreshDashboard}><RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />{refreshing ? 'Refreshing...' : 'Refresh'}</button>}>Live operational analytics from MongoDB across projects, people, workload, deadlines, and payments.</PageHeader>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total Projects" value={cards.totalProjects} icon={Briefcase} to="/projects" />
-        <StatCard label="Live Projects" value={cards.activeProjects} icon={Activity} accent="from-emerald-500 to-teal-600" to="/projects?status=Live" />
-        <StatCard label="Completed Projects" value={cards.completedProjects} icon={CheckCircle2} accent="from-blue-500 to-cyan-600" to="/projects?status=Completed" />
-        <StatCard label="Pending Projects" value={cards.pendingProjects} icon={Clock3} accent="from-amber-500 to-orange-600" to="/projects?status=Pre-Sale,Not%20Live,On%20Hold,Draft" />
-        {canViewFullDashboard && <><StatCard label="Candidates" value={cards.totalCandidates} icon={UserCheck} to="/candidates" />
-        <StatCard label="Vendors" value={cards.totalVendors} icon={Building2} accent="from-purple-500 to-indigo-600" to="/vendors" />
-        <StatCard label="Freelancers" value={cards.totalFreelancers} icon={Users} accent="from-sky-500 to-blue-600" to="/freelancers" />
-        <StatCard label="Employees" value={cards.totalEmployees} icon={Users} accent="from-slate-700 to-slate-950" to="/employees" /></>}
+        {canViewDashboardCard('total-projects', !isPartner) && <StatCard label="Total Projects" value={cards.totalProjects} icon={Briefcase} to="/projects" />}
+        {canViewDashboardCard('live-projects', !isPartner) && <StatCard label="Live Projects" value={cards.activeProjects} icon={Activity} accent="from-emerald-500 to-teal-600" to="/projects?status=Live" />}
+        {canViewDashboardCard('completed-projects', !isPartner) && <StatCard label="Completed Projects" value={cards.completedProjects} icon={CheckCircle2} accent="from-blue-500 to-cyan-600" to="/projects?status=Completed" />}
+        {canViewDashboardCard('pending-projects', !isPartner) && <StatCard label="Pending Projects" value={cards.pendingProjects} icon={Clock3} accent="from-amber-500 to-orange-600" to="/projects?status=Pre-Sale,Not%20Live,On%20Hold,Draft" />}
+        {canViewDashboardCard('candidates', false) && <StatCard label="Candidates" value={cards.totalCandidates} icon={UserCheck} to="/candidates" />}
+        {canViewDashboardCard('vendors', user?.role === 'vendor') && <StatCard label="Vendors" value={cards.totalVendors} icon={Building2} accent="from-purple-500 to-indigo-600" to="/vendors" />}
+        {canViewDashboardCard('freelancers', user?.role === 'freelancer') && <StatCard label="Freelancers" value={cards.totalFreelancers} icon={Users} accent="from-sky-500 to-blue-600" to="/freelancers" />}
+        {canViewDashboardCard('employees', user?.role === 'employee') && <StatCard label="Employees" value={cards.totalEmployees} icon={Users} accent="from-slate-700 to-slate-950" to="/employees" />}
       </div>
 
       {canViewPasswordSetup && passwordSetup.summary.length > 0 && <div className="card mt-6 p-5">

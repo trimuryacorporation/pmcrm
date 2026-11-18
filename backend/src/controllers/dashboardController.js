@@ -54,7 +54,24 @@ export async function dashboard(req, res, next) {
     const permissionFor = (resource) => req.user.accessPermissions?.get ? req.user.accessPermissions.get(resource) : req.user.accessPermissions?.[resource];
     const dashboardPermission = permissionFor('dashboard-full');
     const hasDashboardFullAccess = isAdmin || (!isPartner && Boolean(dashboardPermission?.view));
+    const canViewCard = (key, fallback) => {
+      if (req.user.role === 'super_admin') return true;
+      const permission = permissionFor('dashboard-card-' + key);
+      if (typeof permission?.view === 'boolean') return permission.view;
+      return hasDashboardFullAccess || fallback;
+    };
+    const dashboardCards = {
+      totalProjects: canViewCard('total-projects', !isPartner),
+      activeProjects: canViewCard('live-projects', !isPartner),
+      completedProjects: canViewCard('completed-projects', !isPartner),
+      pendingProjects: canViewCard('pending-projects', !isPartner),
+      totalCandidates: canViewCard('candidates', false),
+      totalVendors: canViewCard('vendors', req.user.role === 'vendor'),
+      totalFreelancers: canViewCard('freelancers', req.user.role === 'freelancer'),
+      totalEmployees: canViewCard('employees', req.user.role === 'employee')
+    };
     const dashboardAccess = Object.fromEntries(['projects', 'monthly-analytics', 'project-status', 'recent-activity', 'upcoming-deadlines'].map((section) => [section, !isPartner || Boolean(permissionFor('dashboard-' + section)?.view)]));
+    dashboardAccess.cards = dashboardCards;
     const applicationPermission = permissionFor('project-applications');
     const canViewProjectApplications = !isPartner && (hasDashboardFullAccess || Boolean(applicationPermission?.view));
     const passwordSetupPermission = permissionFor('password-setup-status');
@@ -94,14 +111,14 @@ export async function dashboard(req, res, next) {
       projectApplications,
       paymentRecipients
     ] = await Promise.all([
-      dashboardAccess.projects ? Project.countDocuments(projectFilter) : 0,
-      dashboardAccess.projects ? Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }) : 0,
-      dashboardAccess.projects ? Project.countDocuments({ ...projectFilter, status: 'Completed' }) : 0,
-      dashboardAccess.projects ? Project.countDocuments({ ...projectFilter, status: { $in: ['Pre-Sale', 'Not Live', 'On Hold', 'Draft'] } }) : 0,
-      hasDashboardFullAccess ? Candidate.countDocuments() : 0,
-      hasDashboardFullAccess ? Vendor.countDocuments() : req.user.role === 'vendor' ? 1 : 0,
-      hasDashboardFullAccess ? Freelancer.countDocuments() : req.user.role === 'freelancer' ? 1 : 0,
-      hasDashboardFullAccess ? Employee.countDocuments() : req.user.role === 'employee' ? 1 : 0,
+      dashboardCards.totalProjects ? Project.countDocuments(projectFilter) : 0,
+      dashboardCards.activeProjects ? Project.countDocuments({ ...projectFilter, status: { $in: ['Live', 'Active'] } }) : 0,
+      dashboardCards.completedProjects ? Project.countDocuments({ ...projectFilter, status: 'Completed' }) : 0,
+      dashboardCards.pendingProjects ? Project.countDocuments({ ...projectFilter, status: { $in: ['Pre-Sale', 'Not Live', 'On Hold', 'Draft'] } }) : 0,
+      dashboardCards.totalCandidates ? Candidate.countDocuments() : 0,
+      dashboardCards.totalVendors ? (hasDashboardFullAccess ? Vendor.countDocuments() : req.user.role === 'vendor' ? 1 : 0) : 0,
+      dashboardCards.totalFreelancers ? (hasDashboardFullAccess ? Freelancer.countDocuments() : req.user.role === 'freelancer' ? 1 : 0) : 0,
+      dashboardCards.totalEmployees ? (hasDashboardFullAccess ? Employee.countDocuments() : req.user.role === 'employee' ? 1 : 0) : 0,
       dashboardAccess['project-status'] ? Project.aggregate([{ $match: projectFilter }, { $group: { _id: '$status', count: { $sum: 1 }, avgProgress: { $avg: '$progress' } } }]) : [],
       dashboardAccess['monthly-analytics'] ? Project.aggregate([
         { $match: projectFilter },

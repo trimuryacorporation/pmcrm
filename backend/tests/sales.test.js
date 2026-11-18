@@ -24,6 +24,8 @@ import { escapeRegex } from '../src/sales/store.js';
 import { permissionsFor,scopeFor } from '../src/sales/security.js';
 import { resources,navigation } from '../src/sales/config.js';
 import { parseImport } from '../src/sales/exports.js';
+import { dashboard as dashboardController } from '../src/controllers/dashboardController.js';
+import { protect } from '../src/middleware/auth.js';
 
 let repl,server,r2Server,base,manager,bda,other,tokens,employee,superAdmin;
 const r2Uploads=[];
@@ -41,7 +43,7 @@ before(async()=>{
   employee=await Employee.create({employeeId:'TEST-PM',name:'Test Project Manager'});
   superAdmin=await User.create({name:'Access Administrator',email:'access-admin@sales.test',password:'test-password',role:'super_admin'});
   tokens=Object.fromEntries([manager,bda,other,superAdmin].map(user=>[String(user._id),jwt.sign({id:user._id},process.env.JWT_SECRET)]));
-  const app=express();app.use(express.json());app.use('/api/sales',routes);app.use('/api/administrators',adminRoutes);app.use(errorHandler);
+  const app=express();app.use(express.json());app.use('/api/sales',routes);app.use('/api/administrators',adminRoutes);app.get('/dashboard',protect,dashboardController);app.use(errorHandler);
   server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));base='http://127.0.0.1:'+server.address().port+'/api/sales';
 });
 after(async()=>{if(server)await new Promise(resolve=>server.close(resolve));if(r2Server)await new Promise(resolve=>r2Server.close(resolve));await mongoose.disconnect();if(repl)await repl.stop();});
@@ -456,4 +458,32 @@ test('isolated MongoDB: Outreach dashboard summarizes creator totals and paginat
   assert.equal(filtered.total,0);
   assert.deepEqual(filtered.rows,[]);
   await request(other,'/outreach-dashboard?module=linkedin','GET',undefined,403);
+});
+
+test('isolated MongoDB: each enterprise dashboard stat card follows its user permission',async()=>{
+  const accessBase=base.replace('/sales','/administrators');
+  const update=async accessPermissions=>{
+    const response=await fetch(accessBase+'/access-users/'+bda._id+'/permissions',{
+      method:'PATCH',
+      headers:{Authorization:'Bearer '+tokens[String(superAdmin._id)],'Content-Type':'application/json'},
+      body:JSON.stringify({accessPermissions})
+    });
+    assert.equal(response.status,200,await response.text());
+  };
+  await update({
+    'dashboard-card-total-projects':{view:false},
+    'dashboard-card-live-projects':{view:true},
+    'dashboard-card-candidates':{view:true}
+  });
+  const response=await fetch('http://127.0.0.1:'+server.address().port+'/dashboard',{
+    headers:{Authorization:'Bearer '+tokens[String(bda._id)]}
+  });
+  assert.equal(response.status,200);
+  const result=await response.json();
+  assert.equal(result.dashboardAccess.cards.totalProjects,false);
+  assert.equal(result.dashboardAccess.cards.activeProjects,true);
+  assert.equal(result.cards.totalProjects,0);
+  assert.equal(typeof result.cards.activeProjects,'number');
+  assert.equal(result.dashboardAccess.cards.totalCandidates,true);
+  await update({});
 });
