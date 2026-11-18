@@ -14,6 +14,7 @@ import { createRecord, updateRecord, deleteRecord, listFilter, populateQuery, tr
 import { act, deliverEmail } from './workflows.js';
 import { analytics } from './analytics.js';
 import { salesReport } from './reports.js';
+import { outreachDashboard } from './outreachDashboard.js';
 import { spreadsheet, importTemplate, tablePdf, quotationPdf, parseImport, reportSpreadsheet, exportFields } from './exports.js';
 import { writeSalesAudit } from './validation.js';
 import { getCommunicationConfig } from '../config/communications.js';
@@ -75,6 +76,7 @@ router.get('/metadata',wrap(async(req,res)=>{
   const email=await getCommunicationConfig();
   res.json({pages:Object.fromEntries(salesAccessModules.map(item=>[item.page,salesPagePermissions(req.sales,item.page)])),permissions,references,role:req.sales.role,allRecords:req.sales.allRecords,userId:req.sales.userId,userName:req.user.name,emailPreferences:{signature:req.user.salesEmailPreferences?.signature || '',autoInclude:req.user.salesEmailPreferences?.autoInclude!==false},emailConfigured:Boolean(email.email.enabled&&email.email.host&&email.email.from),settings:permitted(req,'settings','view')?await models.settings.findOne().select('-history').lean():null});
 }));
+router.get('/outreach-dashboard',wrap(async(req,res)=>{requireSalesPage(req,'dashboard');res.json(await outreachDashboard(req));}));
 router.get('/reports/export',wrap(async(req,res)=>{
   requireSalesPage(req,'reports','view');requireSalesPage(req,'reports','export');const data=await salesReport(req,true),format=String(req.query.format || 'xlsx');
   if(!['xlsx','csv','pdf'].includes(format))fail('Unsupported export format');

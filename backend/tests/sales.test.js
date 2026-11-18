@@ -428,3 +428,27 @@ test('isolated MongoDB: personal email signatures and multiple attachments persi
   await request(other,'/emails/'+draft._id+'/files/'+draft.files[0].id,'GET',undefined,404);
   await request(bda,'/email-preferences','PATCH',{signature:'',autoInclude:false});assert.equal((await request(bda,'/email-preferences')).autoInclude,false);
 });
+
+test('isolated MongoDB: Outreach dashboard summarizes creator totals and paginates scoped details',async()=>{
+  const record=await request(bda,'/linkedin','POST',{
+    name:'Outreach dashboard fixture',
+    linkedinUrl:'https://www.linkedin.com/in/outreach-dashboard-fixture',
+    clientCategory:'Other'
+  },201);
+  const report=await request(bda,'/outreach-dashboard?module=linkedin');
+  assert.equal(report.total,report.modules.reduce((total,item)=>total+item.count,0));
+  assert.equal(report.modules.find(item=>item.resource==='linkedin').count,1);
+  const contributor=report.contributors.find(item=>item.user===String(bda._id));
+  assert.equal(contributor.name,bda.name);
+  assert.equal(contributor.count,report.total);
+  assert.equal(report.rows.length,1);
+  assert.equal(report.rows[0].title,'Outreach dashboard fixture');
+  assert.equal(report.rows[0].createdBy,bda.name);
+  assert.equal(String(report.rows[0]._id),String(record._id));
+  const filtered=await request(bda,'/outreach-dashboard?module=linkedin&from=2100-01-01');
+  assert.equal(filtered.total,0);
+  assert.deepEqual(filtered.rows,[]);
+  const otherUser=await request(other,'/outreach-dashboard?module=linkedin');
+  assert.equal(otherUser.total,0);
+  assert.deepEqual(otherUser.rows,[]);
+});

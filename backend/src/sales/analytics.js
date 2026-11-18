@@ -8,7 +8,7 @@ const sum=(rows,key)=>rows.reduce((total,row)=>total+Number(row[key] || 0),0);
 const percentage=(part,whole)=>whole?Math.round(part/whole*10000)/100:0;
 const group=(rows,key,valueKey)=>Object.entries(rows.reduce((out,row)=>{const value=String(row[key] || 'Unspecified');out[value]=(out[value] || 0)+(valueKey?Number(row[valueKey] || 0):1);return out;},{})).map(([name,value])=>({name,value}));
 export async function analytics(req) {
-  if(!['leads','deals','calls','meetings','targets'].some(resource=>permitted(req,resource,'view')))fail('You do not have access to Sales analytics',403);
+  if(!['leads','deals','emails','linkedin','calls','meetings','followups','activities','targets'].some(resource=>permitted(req,resource,'view')))fail('You do not have access to Sales analytics',403);
   const currency=String(req.query.currency || 'INR');
   if(!['INR','USD','EUR','GBP'].includes(currency))fail('Unsupported currency');
   let employeeIds;
@@ -17,7 +17,7 @@ export async function analytics(req) {
     employeeIds=await models.team.find(filter).distinct('user');
   }
   const data={};
-  for(const resource of ['leads','deals','emails','calls','meetings','followups','proposals','activities','contracts','targets']) {
+  for(const resource of ['leads','deals','emails','linkedin','calls','meetings','followups','proposals','activities','contracts','targets']) {
     if(!permitted(req,resource,'view')){data[resource]=[];continue;}
     let filter=await listFilter(req,resource);
     const extra=[];
@@ -28,7 +28,7 @@ export async function analytics(req) {
     if(count>50000)fail('Select a narrower date range to analyze up to 50,000 records per module',422);
     data[resource]=await models[resource].find(filter).select('-body -bcc -files -history -signatureEvidence -description -notes').lean();
   }
-  const {leads,deals,emails,calls,meetings,followups,proposals,activities,contracts,targets}=data;
+  const {leads,deals,emails,linkedin,calls,meetings,followups,proposals,activities,contracts,targets}=data;
   const won=deals.filter(item=>item.stage==='Won'),lost=deals.filter(item=>item.stage==='Lost'),open=deals.filter(item=>!['Won','Lost'].includes(item.stage));
   const qualified=leads.filter(item=>['Qualified','Proposal Sent','Negotiation','Won'].includes(item.status));
   const now=new Date(),today=new Date();today.setHours(0,0,0,0);
