@@ -33,7 +33,7 @@ export default function AppLayout() {
   const salesAdministrationItems=(salesSections.find(group=>group.label==='Administration')?.items || [])
     .filter(({slug})=>salesPermissions?.[slug]?.view)
     .map(({slug,label,icon})=>({label,path:slug==='permissions'?'/access-control':`/sales/${slug}`,icon}));
-  const visibleSalesSections = salesSections.filter(group=>group.label!=='Administration').map(group => ({ ...group, items: group.items.filter(({ slug }) => slug !== 'dashboard' && salesPermissions?.[slug]?.view) })).filter(group => group.items.length);
+  const visibleSalesSections = salesSections.filter(group=>!['Administration','Lead Management'].includes(group.label)).map(group => ({ ...group, items: group.items.filter(({ slug }) => slug !== 'dashboard' && salesPermissions?.[slug]?.view) })).filter(group => group.items.length);
 
 
   function toggleDesktopSidebar() {
