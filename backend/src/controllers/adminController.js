@@ -1,7 +1,7 @@
 import { models as salesModels } from '../sales/models.js';
 import { salesAccessModules, salesAccessActions } from '../sales/config.js';
 import { salesPagePermissions } from '../sales/security.js';
-import User from '../models/User.js';
+import User, { normalizeAccessPermissions } from '../models/User.js';
 import { writeAudit } from '../utils/audit.js';
 
 const administratorRoles = ['super_admin', 'admin'];
@@ -17,7 +17,7 @@ export async function listAccessUsers(req, res, next) {
       const allowed=['super_admin','admin','employee'].includes(user.role);
       const effectiveSalesAccess=Object.fromEntries(salesAccessModules.map(module=>[module.key,allowed?salesPagePermissions(identity,module.page):{view:false}]));
       effectiveSalesAccess.sales=Object.fromEntries(salesAccessActions.map(action=>[action,allowed && (action==='view'?salesPagePermissions(identity,'dashboard').sectionView:salesAccessModules.some(module=>effectiveSalesAccess[module.key][action]))]));
-      return {...user.toObject(),effectiveSalesAccess};
+      return {...user.toObject(),accessPermissions:normalizeAccessPermissions(user.accessPermissions),effectiveSalesAccess};
     })});
   } catch (error) {
     next(error);
@@ -44,7 +44,7 @@ export async function updateUserPermissions(req, res, next) {
     user.accessPermissions = cleaned;
     await user.save();
     await writeAudit(req, 'UPDATE', 'User permissions', user, { accessPermissions: cleaned });
-    res.json({ item: { _id: user._id, accessPermissions: user.accessPermissions }, message: 'User permissions updated' });
+    res.json({ item: { _id: user._id, accessPermissions: normalizeAccessPermissions(user.accessPermissions) }, message: 'User permissions updated' });
   } catch (error) {
     next(error);
   }

@@ -9,7 +9,7 @@ import { Invoice } from '../models/Finance.js';
 import { protect } from '../middleware/auth.js';
 import { resources, actions, salesAccessModules } from './config.js';
 import { models, SalesAudit } from './models.js';
-import { salesIdentity, salesRateLimit, requirePermission, permissionsFor, scope, getRecord, fail, permitted, salesPagePermissions, requireSalesPage } from './security.js';
+import { salesIdentity, salesRateLimit, requirePermission, permissionsFor, scope, getRecord, fail, permitted, salesPagePermissions, requireSalesPage, hasOutreachDashboardAccess } from './security.js';
 import { createRecord, updateRecord, deleteRecord, listFilter, populateQuery, transaction, escapeRegex } from './store.js';
 import { act, deliverEmail } from './workflows.js';
 import { analytics } from './analytics.js';
@@ -48,7 +48,7 @@ async function restoreLinkedInArchives(items,user) {
 router.use(protect,salesRateLimit,salesIdentity);
 router.use((req,res,next)=>{try{
   const page=req.get('X-Sales-Page');
-  if(page && req.path!=='/metadata' && req.path!=='/email-preferences' && salesAccessModules.some(module=>module.page===page)){
+  if(page && req.path!=='/metadata' && req.path!=='/email-preferences' && req.path!=='/outreach-dashboard' && salesAccessModules.some(module=>module.page===page)){
     const action=req.path.includes('/export')?'export':req.method==='GET'?'view':req.method==='DELETE'?'delete':/\/actions\/(approve|approve-handover|verify-signature)$/.test(req.path)?'approve':['PUT','PATCH'].includes(req.method)||req.path.includes('/actions/')||req.path.endsWith('/bulk')||/\/files$/.test(req.path)?'edit':'create';
     requireSalesPage(req,page,'view');requireSalesPage(req,page,action);
   }next();
@@ -76,7 +76,7 @@ router.get('/metadata',wrap(async(req,res)=>{
   const email=await getCommunicationConfig();
   res.json({pages:Object.fromEntries(salesAccessModules.map(item=>[item.page,salesPagePermissions(req.sales,item.page)])),permissions,references,role:req.sales.role,allRecords:req.sales.allRecords,userId:req.sales.userId,userName:req.user.name,emailPreferences:{signature:req.user.salesEmailPreferences?.signature || '',autoInclude:req.user.salesEmailPreferences?.autoInclude!==false},emailConfigured:Boolean(email.email.enabled&&email.email.host&&email.email.from),settings:permitted(req,'settings','view')?await models.settings.findOne().select('-history').lean():null});
 }));
-router.get('/outreach-dashboard',wrap(async(req,res)=>{requireSalesPage(req,'dashboard');res.json(await outreachDashboard(req));}));
+router.get('/outreach-dashboard',wrap(async(req,res)=>{if(!hasOutreachDashboardAccess(req.sales))fail('You do not have access to the Outreach & Communication dashboard',403);res.json(await outreachDashboard(req));}));
 router.get('/reports/export',wrap(async(req,res)=>{
   requireSalesPage(req,'reports','view');requireSalesPage(req,'reports','export');const data=await salesReport(req,true),format=String(req.query.format || 'xlsx');
   if(!['xlsx','csv','pdf'].includes(format))fail('Unsupported export format');

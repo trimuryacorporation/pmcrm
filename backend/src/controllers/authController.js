@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { body } from 'express-validator';
-import User from '../models/User.js';
+import User, { normalizeAccessPermissions } from '../models/User.js';
 import { Candidate, Employee, Freelancer, Vendor } from '../models/People.js';
 import { clientIp, writeAudit } from '../utils/audit.js';
 import { getCommunicationConfig } from '../config/communications.js';
@@ -27,7 +27,7 @@ function userResponse(user) {
     name: user.name,
     email: user.email,
     role: user.role,
-    accessPermissions: user.accessPermissions,
+    accessPermissions: normalizeAccessPermissions(user.accessPermissions),
     avatar: user.avatar,
     lastLoginAt: user.lastLoginAt,
     lastSeenAt: user.lastSeenAt,

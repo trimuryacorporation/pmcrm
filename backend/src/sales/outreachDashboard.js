@@ -68,7 +68,7 @@ export async function outreachDashboard(req) {
   const available = outreachModules.filter(module =>
     salesPagePermissions(req.sales, module.page).view && permitted(req, module.resource, 'view')
   );
-  if (!available.length) fail('You do not have access to Outreach & Communication', 403);
+  if (!available.length) return { total: 0, modules: [], contributors: [], rows: [], nextCursor: null, pageSize: 25 };
 
   const requestedModule = String(req.query.module || 'all');
   if (requestedModule !== 'all' && !available.some(module => module.resource === requestedModule)) {

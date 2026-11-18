@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 
 export const ROLES = ['super_admin', 'admin', 'employee', 'vendor', 'freelancer', 'candidate'];
 
+export function normalizeAccessPermissions(value) {
+  return value && typeof value.entries === 'function' ? Object.fromEntries(value.entries()) : value;
+}
+
 const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },

@@ -8,6 +8,7 @@ import StatCard from '../components/StatCard.jsx';
 import StatusBadge from '../components/StatusBadge.jsx';
 import { endpoints } from '../utils/api.js';
 import SalesDashboard from '../sales/SalesDashboard.jsx';
+import OutreachDashboard from '../sales/OutreachDashboard.jsx';
 import { salesRoles } from '../data/sales.js';
 import { salesApi } from '../sales/api.js';
 import { services } from '../../../backend/src/sales/config.js';
@@ -28,6 +29,7 @@ export default function Dashboard() {
   const [salesMetadataRetry, setSalesMetadataRetry] = useState(0);
   const { user } = useAuth();
   const canViewSales = salesRoles.includes(user?.role);
+  const canViewOutreachDashboard = canViewSales && (user?.role === 'super_admin' || (user?.accessPermissions?.get ? user.accessPermissions.get('outreach-dashboard')?.view : user?.accessPermissions?.['outreach-dashboard']?.view) === true);
 
   async function loadDashboard() {
     const response = await endpoints.dashboard();
@@ -249,8 +251,9 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
-      {canViewSales && salesMetadataError && <div role="alert" className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Sales dashboard could not be loaded: {salesMetadataError}<button type="button" className="btn-secondary ml-3" onClick={() => setSalesMetadataRetry((value) => value + 1)}>Retry</button></div>}
+      {canViewSales && salesMetadataError && !canViewOutreachDashboard && <div role="alert" className="mt-6 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Sales dashboard could not be loaded: {salesMetadataError}<button type="button" className="btn-secondary ml-3" onClick={() => setSalesMetadataRetry((value) => value + 1)}>Retry</button></div>}
       {salesMetadata?.pages?.dashboard?.view && <div className="mt-8"><SalesDashboard page="dashboard" metadata={salesMetadata} embedded /></div>}
+      {canViewOutreachDashboard && <div className="mt-8"><OutreachDashboard allRecords={user?.role === 'super_admin'} /></div>}
       {passwordStatus && <PasswordStatusModal status={passwordStatus} records={selectedPasswordRecords} sendingInviteId={sendingInviteId} onSendSetupEmail={sendSetupEmail} onClose={() => setPasswordStatus('')} />}
       {selectedProjectApplicants && <ProjectApplicantsModal applications={selectedProjectApplicants.applications} onClose={() => setSelectedProjectApplicants(null)} />}
     </>

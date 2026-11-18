@@ -11,12 +11,12 @@ const roles = [
   ['super_admin', 'Super Admin'], ['admin', 'Admin'], ['employee', 'Employee'], ['vendor', 'Vendor'], ['freelancer', 'Freelancer'], ['candidate', 'Candidate']
 ];
 const crmPermissionModules = [
-  ['dashboard-full', 'Full Dashboard'], ['dashboard-projects', 'Dashboard: Project overview'], ['dashboard-monthly-analytics', 'Dashboard: Monthly project analytics'], ['dashboard-project-status', 'Dashboard: Project status summary'], ['dashboard-recent-activity', 'Dashboard: Recent activity'], ['dashboard-upcoming-deadlines', 'Dashboard: Upcoming deadlines'], ['projects', 'Projects'], ['project-applications', 'Project Applications'], ['password-setup-status', 'Password Setup Status'], ['employee-activity-report', 'Employee Activity Report'], ['portal-directory', 'Portal Directory'], ['clients', 'Clients'], ['candidates', 'Candidates'], ['vendors', 'Vendors'], ['freelancers', 'Freelancers'], ['employees', 'Employees'], ['allocation', 'Allocation'], ['tasks', 'Tasks'], ['payments', 'Payments']
+  ['dashboard-full', 'Full Dashboard'], ['dashboard-projects', 'Dashboard: Project overview'], ['dashboard-monthly-analytics', 'Dashboard: Monthly project analytics'], ['dashboard-project-status', 'Dashboard: Project status summary'], ['dashboard-recent-activity', 'Dashboard: Recent activity'], ['dashboard-upcoming-deadlines', 'Dashboard: Upcoming deadlines'], ['outreach-dashboard', 'Outreach & Communication Dashboard'], ['projects', 'Projects'], ['project-applications', 'Project Applications'], ['password-setup-status', 'Password Setup Status'], ['employee-activity-report', 'Employee Activity Report'], ['portal-directory', 'Portal Directory'], ['clients', 'Clients'], ['candidates', 'Candidates'], ['vendors', 'Vendors'], ['freelancers', 'Freelancers'], ['employees', 'Employees'], ['allocation', 'Allocation'], ['tasks', 'Tasks'], ['payments', 'Payments']
 ];
 const actions = salesAccessActions;
 const usersPerPage=50;
 const permissionModules=[...crmPermissionModules,['sales','Sales module access'],...salesAccessModules.map(module=>[module.key,module.label])];
-const moduleActions=key=>key==='sales'?actions:key.startsWith('sales-')?actions:['view','create','edit','delete'];
+const moduleActions=key=>key==='outreach-dashboard'?['view']:key==='sales'?actions:key.startsWith('sales-')?actions:['view','create','edit','delete'];
 const groupFor=key=>key==='sales'?'Sales module access':salesAccessModules.find(module=>module.key===key)?.section;
 
 const dashboardRoleAccess = [

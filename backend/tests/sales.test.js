@@ -430,6 +430,13 @@ test('isolated MongoDB: personal email signatures and multiple attachments persi
 });
 
 test('isolated MongoDB: Outreach dashboard summarizes creator totals and paginates scoped details',async()=>{
+  await request(bda,'/outreach-dashboard?module=linkedin','GET',undefined,403);
+  const accessBase=base.replace('/sales','/administrators');
+  const grant=await fetch(accessBase+'/access-users/'+bda._id+'/permissions',{method:'PATCH',headers:{Authorization:'Bearer '+tokens[String(superAdmin._id)],'Content-Type':'application/json'},body:JSON.stringify({accessPermissions:{'outreach-dashboard':{view:true}}})});
+  assert.equal(grant.status,200,await grant.text());
+  const usersResponse=await fetch(accessBase+'/access-users',{headers:{Authorization:'Bearer '+tokens[String(superAdmin._id)]}});
+  const usersData=await usersResponse.json();
+  assert.equal(usersData.items.find(item=>String(item._id)===String(bda._id)).accessPermissions['outreach-dashboard'].view,true);
   const record=await request(bda,'/linkedin','POST',{
     name:'Outreach dashboard fixture',
     linkedinUrl:'https://www.linkedin.com/in/outreach-dashboard-fixture',
@@ -448,7 +455,5 @@ test('isolated MongoDB: Outreach dashboard summarizes creator totals and paginat
   const filtered=await request(bda,'/outreach-dashboard?module=linkedin&from=2100-01-01');
   assert.equal(filtered.total,0);
   assert.deepEqual(filtered.rows,[]);
-  const otherUser=await request(other,'/outreach-dashboard?module=linkedin');
-  assert.equal(otherUser.total,0);
-  assert.deepEqual(otherUser.rows,[]);
+  await request(other,'/outreach-dashboard?module=linkedin','GET',undefined,403);
 });

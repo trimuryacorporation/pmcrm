@@ -24,8 +24,9 @@ export async function salesIdentity(req,res,next) {
     if(member?.status==='Inactive' && req.user.role!=='super_admin') fail('Sales account is inactive',403);
     const root=['super_admin','admin'].includes(req.user.role);
     const grants=permission?.grants || {};
-    req.sales={role:root?'Sales Head':permission?.salesRole || 'BDA',root,allRecords:req.user.role==='super_admin',grants, userId:String(req.user._id),superAdmin:req.user.role==='super_admin',accessPermissions:req.user.accessPermissions};
-    if(!salesPagePermissions(req.sales,'dashboard').sectionView)fail('Sales access denied',403);
+    const outreachDashboardAccess=req.path==='/outreach-dashboard' && hasOutreachDashboardAccess(req.user);
+    req.sales={role:root?'Sales Head':permission?.salesRole || 'BDA',root,allRecords:req.user.role==='super_admin',grants,userId:String(req.user._id),superAdmin:req.user.role==='super_admin',accessPermissions:req.user.accessPermissions,outreachDashboardAccess};
+    if(!salesPagePermissions(req.sales,'dashboard').sectionView && !outreachDashboardAccess)fail('Sales access denied',403);
     next();
   } catch(error){next(error);}
 }
@@ -64,10 +65,14 @@ export function salesRateLimit(req,res,next) {
   next();
 }
 const accessEntry=(identity,key)=>identity.accessPermissions?.get?identity.accessPermissions.get(key):identity.accessPermissions?.[key];
+export function hasOutreachDashboardAccess(identity) {
+  return identity.superAdmin===true || identity.role==='super_admin' || accessEntry(identity,'outreach-dashboard')?.view===true;
+}
 function applyAccess(identity,key,defaults) {
   if(identity.superAdmin)return defaults;
   const section=accessEntry(identity,'sales'),entry=accessEntry(identity,key);
-  return Object.fromEntries(salesAccessActions.map(action=>[action,Boolean((entry?.[action] ?? defaults[action]) && section?.view!==false && section?.[action]!==false)]));
+  const sectionAllowed=identity.outreachDashboardAccess || section?.view!==false;
+  return Object.fromEntries(salesAccessActions.map(action=>[action,Boolean((entry?.[action] ?? defaults[action]) && sectionAllowed && (identity.outreachDashboardAccess || section?.[action]!==false))]));
 }
 export function permissionsFor(identity,resource) {
   const defaults=basePermissions(identity,resource),permission=applyAccess(identity,salesResourceAccessKey(resource),defaults);
