@@ -78,6 +78,23 @@ export default function AccessControl() {
     setPermissions(Object.fromEntries(permissionModules.map(([key]) => [key, moduleActions(key).reduce((item, action) => ({ ...item, [action]: Boolean(existing[key]?.[action]) }), {})])));
   }
 
+  function updatePermission(key, action, enabled) {
+    setPermissions(current => {
+      const updated = { ...current, [key]: { ...current[key], [action]: enabled } };
+      if (key === 'sales') {
+        salesAccessModules.forEach(module => {
+          updated[module.key] = { ...current[module.key], [action]: enabled };
+        });
+      } else if (key.startsWith('sales-')) {
+        updated.sales = {
+          ...current.sales,
+          [action]: enabled || salesAccessModules.some(module => module.key !== key && current[module.key]?.[action])
+        };
+      }
+      return updated;
+    });
+  }
+
   async function savePermissions() {
     setBusy(true);
     try {
@@ -158,7 +175,7 @@ export default function AccessControl() {
 const group=groupFor(key),previous=groupFor(permissionModules[index-1]?.[0]);
 return <Fragment key={key}>
 {group&&group!==previous&&<tr className="bg-indigo-50"><td colSpan={actions.length+1} className="px-3 py-2 text-xs font-bold uppercase tracking-wide text-indigo-700">{group}</td></tr>}
-<tr><td className="py-3 font-semibold text-slate-800">{label}</td>{actions.map(action=><td key={action} className="px-3 py-3 text-center">{moduleActions(key).includes(action)?<input aria-label={label+' '+action} type="checkbox" className="h-4 w-4 accent-indigo-600" checked={Boolean(permissions[key]?.[action])} onChange={event=>setPermissions(current=>({...current,[key]:{...current[key],[action]:event.target.checked}}))}/>:<span className="text-slate-300">?</span>}</td>)}</tr>
+<tr><td className="py-3 font-semibold text-slate-800">{label}</td>{actions.map(action=><td key={action} className="px-3 py-3 text-center">{moduleActions(key).includes(action)?<input aria-label={label+' '+action} type="checkbox" className="h-4 w-4 accent-indigo-600" checked={Boolean(permissions[key]?.[action])} onChange={event=>updatePermission(key,action,event.target.checked)}/>:<span className="text-slate-300">?</span>}</td>)}</tr>
 </Fragment>;})}</tbody></table></div><div className="flex justify-end gap-3 border-t border-slate-200 p-5"><button className="btn-secondary" disabled={busy} onClick={() => setPermissionUser(null)}>Cancel</button><button className="btn-primary" disabled={busy} onClick={savePermissions}>{busy ? 'Saving...' : 'Save permissions'}</button></div></div></div>}
   </>;
 }
